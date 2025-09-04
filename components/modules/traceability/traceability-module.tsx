@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Plus, Eye, Edit, Download } from "lucide-react"
+import { Search, Plus, Eye, Edit, Download, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import BulkImportModal from "@/components/bulk-import-modal"
+import { useState } from "react"
 
 export default function TraceabilityModule() {
+  const [showImportModal, setShowImportModal] = useState(false)
   const guiasDespacho = [
     {
       id: 1,
@@ -103,10 +106,16 @@ export default function TraceabilityModule() {
                 </SelectContent>
               </Select>
             </div>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Guía
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Importar Excel
+              </Button>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Nueva Guía
+              </Button>
+            </div>
           </div>
 
           <Card>
@@ -191,10 +200,16 @@ export default function TraceabilityModule() {
                 <Input type="date" className="w-[150px]" />
               </div>
             </div>
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar Kardex
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Importar Excel
+              </Button>
+              <Button variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                Exportar Kardex
+              </Button>
+            </div>
           </div>
 
           <Card>
@@ -257,6 +272,11 @@ export default function TraceabilityModule() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <BulkImportModal 
+        isOpen={showImportModal} 
+        onClose={() => setShowImportModal(false)} 
+      />
     </div>
   )
 }

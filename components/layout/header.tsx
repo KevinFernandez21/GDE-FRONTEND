@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, ChevronDown } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
 import { useApp } from "@/contexts/app-context"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 
 export default function Header() {
   const { user, logout } = useAuth()
@@ -47,10 +48,7 @@ export default function Header() {
           <p className="text-slate-600">{moduleInfo.description}</p>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm">
-            <Bell className="w-4 h-4 mr-2" />
-            Notificaciones
-          </Button>
+          <NotificationBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">

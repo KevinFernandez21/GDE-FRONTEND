@@ -9,6 +9,7 @@ import TraceabilityModule from "@/components/modules/traceability/traceability-m
 import ManagementModule from "@/components/modules/management/management-module"
 import ReportsModule from "@/components/modules/reports/reports-module"
 import ConfigurationModule from "@/components/modules/configuration/configuration-module"
+import { NotificationProvider } from "@/components/notifications/notification-provider"
 
 export default function MainLayout() {
   const { activeModule } = useApp()
@@ -33,12 +34,14 @@ export default function MainLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto">{renderModule()}</main>
+    <NotificationProvider>
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto">{renderModule()}</main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   )
 }
