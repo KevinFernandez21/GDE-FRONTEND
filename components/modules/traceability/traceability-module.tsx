@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Plus, Eye, Edit, Download, Upload } from "lucide-react"
+import { Search, Plus, Eye, Edit, Download, Upload, Check, X, Save, Trash2, RowsIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,12 +8,21 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import BulkImportModal from "@/components/bulk-import-modal"
-import { useState } from "react"
+import BulkGuideImportModal from "@/components/bulk-guide-import-modal"
+import { useState, useCallback } from "react"
+import { toast } from "sonner"
 
 export default function TraceabilityModule() {
   const [showImportModal, setShowImportModal] = useState(false)
-  const guiasDespacho = [
+  const [showGuideImportModal, setShowGuideImportModal] = useState(false)
+  const [editingCell, setEditingCell] = useState<{rowId: number, field: string, tab: string} | null>(null)
+  const [editValue, setEditValue] = useState("")
+  const [selectedRows, setSelectedRows] = useState<{[key: string]: number[]}>({guias: [], kardex: []})
+  const [hasChanges, setHasChanges] = useState(false)
+  
+  const [guiasDespacho, setGuiasDespacho] = useState([
     {
       id: 1,
       codigo: "GD-2024-001",
@@ -41,9 +50,9 @@ export default function TraceabilityModule() {
       usuario: "Carlos López",
       productos: 8,
     },
-  ]
+  ])
 
-  const kardexData = [
+  const [kardexData, setKardexData] = useState([
     {
       id: 1,
       fecha: "2024-01-05",
@@ -77,7 +86,160 @@ export default function TraceabilityModule() {
       usuario: "Carlos López",
       observaciones: "Ajuste por inventario físico",
     },
-  ]
+  ])
+
+  const handleCellClick = useCallback((rowId: number, field: string, currentValue: any, tab: string) => {
+    setEditingCell({ rowId, field, tab })
+    setEditValue(String(currentValue))
+  }, [])
+
+  const handleCellSave = useCallback(() => {
+    if (!editingCell) return
+    
+    if (editingCell.tab === 'guias') {
+      setGuiasDespacho(prev => prev.map(item => {
+        if (item.id === editingCell.rowId) {
+          const updatedItem = { ...item }
+          const fieldValue = field === 'productos' ? parseFloat(editValue) || 0 : editValue
+          updatedItem[editingCell.field] = fieldValue
+          return updatedItem
+        }
+        return item
+      }))
+    } else {
+      setKardexData(prev => prev.map(item => {
+        if (item.id === editingCell.rowId) {
+          const updatedItem = { ...item }
+          const fieldValue = ['cantidadEntrada', 'cantidadSalida', 'saldo'].includes(editingCell.field) 
+                            ? parseFloat(editValue) || 0 
+                            : editValue
+          updatedItem[editingCell.field] = fieldValue
+          return updatedItem
+        }
+        return item
+      }))
+    }
+    
+    setEditingCell(null)
+    setEditValue("")
+    setHasChanges(true)
+    toast.success("Celda actualizada")
+  }, [editingCell, editValue])
+
+  const handleCellCancel = useCallback(() => {
+    setEditingCell(null)
+    setEditValue("")
+  }, [])
+
+  const handleSelectRow = useCallback((rowId: number, tab: string) => {
+    setSelectedRows(prev => ({
+      ...prev,
+      [tab]: prev[tab].includes(rowId) 
+        ? prev[tab].filter(id => id !== rowId)
+        : [...prev[tab], rowId]
+    }))
+  }, [])
+
+  const handleSelectAll = useCallback((tab: string) => {
+    const data = tab === 'guias' ? guiasDespacho : kardexData
+    setSelectedRows(prev => ({
+      ...prev,
+      [tab]: prev[tab].length === data.length 
+        ? []
+        : data.map(item => item.id)
+    }))
+  }, [guiasDespacho, kardexData])
+
+  const renderEditableCell = useCallback((item: any, field: string, tab: string) => {
+    const isEditing = editingCell?.rowId === item.id && editingCell?.field === field && editingCell?.tab === tab
+    const value = item[field]
+    const isSelected = selectedRows[tab]?.includes(item.id)
+    
+    if (isEditing) {
+      if (field === 'estado' || field === 'tipoMovimiento') {
+        const options = field === 'estado' 
+          ? ['Pendiente', 'Despachado', 'En Tránsito', 'Entregado']
+          : ['Entrada', 'Salida', 'Ajuste', 'Transferencia']
+            
+        return (
+          <div className="flex items-center gap-1">
+            <Select value={editValue} onValueChange={setEditValue}>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map(option => (
+                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="ghost" onClick={handleCellSave}>
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleCellCancel}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        )
+      } else {
+        return (
+          <div className="flex items-center gap-1">
+            <Input
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="h-8 w-full min-w-[120px]"
+              type={['productos', 'cantidadEntrada', 'cantidadSalida', 'saldo'].includes(field) ? 'number' : 'text'}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCellSave()
+                if (e.key === 'Escape') handleCellCancel()
+              }}
+              autoFocus
+            />
+            <Button size="sm" variant="ghost" onClick={handleCellSave}>
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleCellCancel}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        )
+      }
+    }
+
+    const cellClass = `cursor-pointer hover:bg-gray-50 p-2 rounded min-h-[32px] border border-transparent hover:border-blue-300 ${isSelected ? 'bg-blue-50' : ''}`
+    
+    if (field === 'estado') {
+      const variant = value === "Pendiente" ? "destructive" : value === "Despachado" ? "default" : "secondary"
+      return (
+        <div className={cellClass} onClick={() => handleCellClick(item.id, field, value, tab)}>
+          <Badge variant={variant}>{value}</Badge>
+        </div>
+      )
+    }
+    
+    if (field === 'tipoMovimiento') {
+      const variant = value === "Entrada" ? "default" : value === "Salida" ? "destructive" : "secondary"
+      return (
+        <div className={cellClass} onClick={() => handleCellClick(item.id, field, value, tab)}>
+          <Badge variant={variant}>{value}</Badge>
+        </div>
+      )
+    }
+
+    if (field === 'codigo' || field === 'documento') {
+      return (
+        <div className={cellClass} onClick={() => handleCellClick(item.id, field, value, tab)}>
+          <span className="font-mono">{value}</span>
+        </div>
+      )
+    }
+
+    return (
+      <div className={cellClass} onClick={() => handleCellClick(item.id, field, value, tab)}>
+        {value}
+      </div>
+    )
+  }, [editingCell, editValue, selectedRows, handleCellClick, handleCellSave, handleCellCancel])
 
   return (
     <div className="p-6 space-y-6">
@@ -107,7 +269,7 @@ export default function TraceabilityModule() {
               </Select>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+              <Button variant="outline" onClick={() => setShowGuideImportModal(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Importar Excel
               </Button>
@@ -115,6 +277,29 @@ export default function TraceabilityModule() {
                 <Plus className="w-4 h-4 mr-2" />
                 Nueva Guía
               </Button>
+            </div>
+          </div>
+
+          {/* Controles de Edición - Guías */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={selectedRows.guias.length === guiasDespacho.length && guiasDespacho.length > 0}
+                  onCheckedChange={() => handleSelectAll('guias')}
+                />
+                <span className="text-sm font-medium">
+                  {selectedRows.guias.length > 0 ? `${selectedRows.guias.length} seleccionadas` : "Seleccionar todo"}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {hasChanges && (
+                <Button onClick={() => {setHasChanges(false); toast.success("Cambios guardados");}} size="sm" variant="default">
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+              )}
             </div>
           </div>
 
@@ -127,6 +312,7 @@ export default function TraceabilityModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">Sel.</TableHead>
                     <TableHead>Código Guía</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Cliente</TableHead>
@@ -137,40 +323,35 @@ export default function TraceabilityModule() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {guiasDespacho.map((guia) => (
-                    <TableRow key={guia.id}>
-                      <TableCell className="font-mono">{guia.codigo}</TableCell>
-                      <TableCell>{guia.fecha}</TableCell>
-                      <TableCell>{guia.cliente}</TableCell>
-                      <TableCell>{guia.productos} items</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            guia.estado === "Pendiente"
-                              ? "destructive"
-                              : guia.estado === "Despachado"
-                                ? "default"
-                                : guia.estado === "En Tránsito"
-                                  ? "secondary"
-                                  : "default"
-                          }
-                        >
-                          {guia.estado}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{guia.usuario}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {guiasDespacho.map((guia) => {
+                    const isSelected = selectedRows.guias?.includes(guia.id)
+                    return (
+                      <TableRow key={guia.id} className={isSelected ? 'bg-blue-50' : ''}>
+                        <TableCell>
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectRow(guia.id, 'guias')}
+                          />
+                        </TableCell>
+                        <TableCell>{renderEditableCell(guia, 'codigo', 'guias')}</TableCell>
+                        <TableCell>{renderEditableCell(guia, 'fecha', 'guias')}</TableCell>
+                        <TableCell>{renderEditableCell(guia, 'cliente', 'guias')}</TableCell>
+                        <TableCell>{renderEditableCell(guia, 'productos', 'guias')}</TableCell>
+                        <TableCell>{renderEditableCell(guia, 'estado', 'guias')}</TableCell>
+                        <TableCell>{renderEditableCell(guia, 'usuario', 'guias')}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -212,6 +393,29 @@ export default function TraceabilityModule() {
             </div>
           </div>
 
+          {/* Controles de Edición - Kardex */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={selectedRows.kardex.length === kardexData.length && kardexData.length > 0}
+                  onCheckedChange={() => handleSelectAll('kardex')}
+                />
+                <span className="text-sm font-medium">
+                  {selectedRows.kardex.length > 0 ? `${selectedRows.kardex.length} seleccionadas` : "Seleccionar todo"}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {hasChanges && (
+                <Button onClick={() => {setHasChanges(false); toast.success("Cambios guardados");}} size="sm" variant="default">
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+              )}
+            </div>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Kardex - Historial de Movimientos</CardTitle>
@@ -221,6 +425,7 @@ export default function TraceabilityModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">Sel.</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Tipo Movimiento</TableHead>
                     <TableHead>Documento Ref.</TableHead>
@@ -233,39 +438,32 @@ export default function TraceabilityModule() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {kardexData.map((movement) => (
-                    <TableRow key={movement.id}>
-                      <TableCell>{movement.fecha}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            movement.tipoMovimiento === "Entrada"
-                              ? "default"
-                              : movement.tipoMovimiento === "Salida"
-                                ? "destructive"
-                                : "secondary"
-                          }
-                        >
-                          {movement.tipoMovimiento}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono">{movement.documento}</TableCell>
-                      <TableCell className="text-green-600 font-medium">
-                        {movement.cantidadEntrada > 0 ? `+${movement.cantidadEntrada}` : "-"}
-                      </TableCell>
-                      <TableCell className="text-red-600 font-medium">
-                        {movement.cantidadSalida > 0 ? `-${movement.cantidadSalida}` : "-"}
-                      </TableCell>
-                      <TableCell className="font-bold">{movement.saldo}</TableCell>
-                      <TableCell>{movement.usuario}</TableCell>
-                      <TableCell className="max-w-xs truncate">{movement.observaciones}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {kardexData.map((movement) => {
+                    const isSelected = selectedRows.kardex?.includes(movement.id)
+                    return (
+                      <TableRow key={movement.id} className={isSelected ? 'bg-blue-50' : ''}>
+                        <TableCell>
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectRow(movement.id, 'kardex')}
+                          />
+                        </TableCell>
+                        <TableCell>{renderEditableCell(movement, 'fecha', 'kardex')}</TableCell>
+                        <TableCell>{renderEditableCell(movement, 'tipoMovimiento', 'kardex')}</TableCell>
+                        <TableCell>{renderEditableCell(movement, 'documento', 'kardex')}</TableCell>
+                        <TableCell>{renderEditableCell(movement, 'cantidadEntrada', 'kardex')}</TableCell>
+                        <TableCell>{renderEditableCell(movement, 'cantidadSalida', 'kardex')}</TableCell>
+                        <TableCell>{renderEditableCell(movement, 'saldo', 'kardex')}</TableCell>
+                        <TableCell>{renderEditableCell(movement, 'usuario', 'kardex')}</TableCell>
+                        <TableCell>{renderEditableCell(movement, 'observaciones', 'kardex')}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -276,6 +474,10 @@ export default function TraceabilityModule() {
       <BulkImportModal 
         isOpen={showImportModal} 
         onClose={() => setShowImportModal(false)} 
+      />
+      <BulkGuideImportModal 
+        isOpen={showGuideImportModal} 
+        onClose={() => setShowGuideImportModal(false)} 
       />
     </div>
   )

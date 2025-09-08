@@ -1,6 +1,7 @@
 "use client"
 
-import { ChevronDown } from "lucide-react"
+import { useState } from "react"
+import { ChevronDown, User, Settings, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -14,10 +15,27 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { useApp } from "@/contexts/app-context"
 import { NotificationBell } from "@/components/notifications/notification-bell"
+import ProfileModal from "@/components/profile/profile-modal"
 
 export default function Header() {
   const { user, logout } = useAuth()
-  const { activeModule } = useApp()
+  const { activeModule, setActiveModule } = useApp()
+  const [showProfileModal, setShowProfileModal] = useState(false)
+
+  const handleViewProfile = () => {
+    setShowProfileModal(true)
+  }
+
+  const handleSettings = () => {
+    setActiveModule("configuracion")
+  }
+
+  const handleLogout = () => {
+    // Confirm logout action
+    if (window.confirm("¿Estás seguro de que quieres cerrar sesión?")) {
+      logout()
+    }
+  }
 
   const getModuleInfo = () => {
     switch (activeModule) {
@@ -68,14 +86,29 @@ export default function Header() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Ver Perfil</DropdownMenuItem>
-              <DropdownMenuItem>Configuración</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleViewProfile} className="cursor-pointer">
+                <User className="w-4 h-4 mr-2" />
+                Ver Perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSettings} className="cursor-pointer">
+                <Settings className="w-4 h-4 mr-2" />
+                Configuración
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout}>Cerrar Sesión</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
+                <LogOut className="w-4 h-4 mr-2" />
+                Cerrar Sesión
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+      
+      {/* Profile Modal */}
+      <ProfileModal 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)} 
+      />
     </div>
   )
 }

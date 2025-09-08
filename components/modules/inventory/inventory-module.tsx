@@ -63,7 +63,6 @@ export default function InventoryModule() {
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [inventoryItems, setInventoryItems] = useState(initialInventoryData)
   const [hasChanges, setHasChanges] = useState(false)
-  const [isExcelMode, setIsExcelMode] = useState(false)
 
   const stockMetrics = useMemo(() => {
     const totalItems = inventoryItems.reduce((sum, item) => sum + item.cantidad, 0)
@@ -78,10 +77,9 @@ export default function InventoryModule() {
   }, [inventoryItems])
 
   const handleCellClick = useCallback((rowId: number, field: string, currentValue: any) => {
-    if (!isExcelMode) return
     setEditingCell({ rowId, field })
     setEditValue(String(currentValue))
-  }, [isExcelMode])
+  }, [])
 
   const handleCellSave = useCallback(() => {
     if (!editingCell) return
@@ -216,7 +214,7 @@ export default function InventoryModule() {
       }
     }
 
-    const cellClass = `cursor-pointer hover:bg-gray-50 p-2 rounded min-h-[32px] ${isSelected ? 'bg-blue-50' : ''} ${isExcelMode ? 'border border-transparent hover:border-blue-300' : ''}`
+    const cellClass = `cursor-pointer hover:bg-gray-50 p-2 rounded min-h-[32px] border border-transparent hover:border-blue-300 ${isSelected ? 'bg-blue-50' : ''}`
     
     if (field === 'cantidad') {
       const variant = value < 10 ? "destructive" : value < 20 ? "secondary" : "default"
@@ -254,7 +252,7 @@ export default function InventoryModule() {
         )}
       </div>
     )
-  }, [editingCell, editValue, selectedRows, isExcelMode, handleCellClick, handleCellSave, handleCellCancel])
+  }, [editingCell, editValue, selectedRows, handleCellClick, handleCellSave, handleCellCancel])
 
   return (
     <div className="p-6 space-y-6">
@@ -283,13 +281,6 @@ export default function InventoryModule() {
           </Button>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant={isExcelMode ? "default" : "outline"} 
-            onClick={() => setIsExcelMode(!isExcelMode)}
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            {isExcelMode ? "Salir Modo Excel" : "Modo Excel"}
-          </Button>
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Exportar
@@ -301,40 +292,38 @@ export default function InventoryModule() {
         </div>
       </div>
 
-      {/* Controles del Modo Excel */}
-      {isExcelMode && (
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Checkbox 
-                checked={selectedRows.length === inventoryItems.length && inventoryItems.length > 0}
-                onCheckedChange={handleSelectAll}
-              />
-              <span className="text-sm font-medium">
-                {selectedRows.length > 0 ? `${selectedRows.length} seleccionadas` : "Seleccionar todo"}
-              </span>
-            </div>
-            {selectedRows.length > 0 && (
-              <Button variant="destructive" size="sm" onClick={handleDeleteRows}>
-                <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar Seleccionadas
-              </Button>
-            )}
+      {/* Controles de Edición */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Checkbox 
+              checked={selectedRows.length === inventoryItems.length && inventoryItems.length > 0}
+              onCheckedChange={handleSelectAll}
+            />
+            <span className="text-sm font-medium">
+              {selectedRows.length > 0 ? `${selectedRows.length} seleccionadas` : "Seleccionar todo"}
+            </span>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAddRow} size="sm">
-              <RowsIcon className="w-4 h-4 mr-2" />
-              Agregar Fila
+          {selectedRows.length > 0 && (
+            <Button variant="destructive" size="sm" onClick={handleDeleteRows}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar Seleccionadas
             </Button>
-            {hasChanges && (
-              <Button onClick={handleSaveChanges} size="sm" variant="default">
-                <Save className="w-4 h-4 mr-2" />
-                Guardar Cambios
-              </Button>
-            )}
-          </div>
+          )}
         </div>
-      )}
+        <div className="flex gap-2">
+          <Button onClick={handleAddRow} size="sm">
+            <RowsIcon className="w-4 h-4 mr-2" />
+            Agregar Fila
+          </Button>
+          {hasChanges && (
+            <Button onClick={handleSaveChanges} size="sm" variant="default">
+              <Save className="w-4 h-4 mr-2" />
+              Guardar Cambios
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Métricas de Stock */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -386,50 +375,49 @@ export default function InventoryModule() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {isExcelMode && <TableHead className="w-12">Sel.</TableHead>}
+                  <TableHead className="w-12">Sel.</TableHead>
                   <TableHead>ID</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Categoría</TableHead>
                   <TableHead>Precio</TableHead>
                   <TableHead>Cantidad</TableHead>
-                  {!isExcelMode && <TableHead>Acciones</TableHead>}
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {inventoryItems.map((item) => {
                   const isSelected = selectedRows.includes(item.id)
                   return (
-                    <TableRow key={item.id} className={isSelected && isExcelMode ? 'bg-blue-50' : ''}>
-                      {isExcelMode && (
-                        <TableCell>
-                          <Checkbox 
-                            checked={isSelected}
-                            onCheckedChange={() => handleSelectRow(item.id)}
-                          />
-                        </TableCell>
-                      )}
+                    <TableRow key={item.id} className={isSelected ? 'bg-blue-50' : ''}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={isSelected}
+                          onCheckedChange={() => handleSelectRow(item.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-semibold">{item.id}</TableCell>
                       <TableCell>{renderEditableCell(item, 'sku')}</TableCell>
                       <TableCell>{renderEditableCell(item, 'nombre')}</TableCell>
                       <TableCell>{renderEditableCell(item, 'categoria')}</TableCell>
                       <TableCell>{renderEditableCell(item, 'precio')}</TableCell>
                       <TableCell>{renderEditableCell(item, 'cantidad')}</TableCell>
-                      {!isExcelMode && (
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleSelectRow(item.id)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            setSelectedRows([item.id]);
+                            handleDeleteRows();
+                          }}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   )
                 })}

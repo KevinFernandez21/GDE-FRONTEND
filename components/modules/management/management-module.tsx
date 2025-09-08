@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
-import BulkImportModal from "@/components/bulk-import-modal"
+import BulkFinancialImportModal from "@/components/bulk-financial-import-modal"
 
 export default function ManagementModule() {
-  const [showImportModal, setShowImportModal] = useState(false)
+  const [showCostImportModal, setShowCostImportModal] = useState(false)
+  const [showExpenseImportModal, setShowExpenseImportModal] = useState(false)
+  const [showCapitalImportModal, setShowCapitalImportModal] = useState(false)
   // Datos financieros de ejemplo
   const initialFinancialData = {
     costos: [
@@ -90,7 +92,6 @@ export default function ManagementModule() {
     ],
   }
 
-  const [isExcelMode, setIsExcelMode] = useState(false)
   const [editingCell, setEditingCell] = useState<{rowId: number, field: string, tab: string} | null>(null)
   const [editValue, setEditValue] = useState("")
   const [selectedRows, setSelectedRows] = useState<{[key: string]: number[]}>({costos: [], gastos: [], capital: []})
@@ -98,10 +99,9 @@ export default function ManagementModule() {
   const [managementData, setManagementData] = useState(initialFinancialData)
 
   const handleCellClick = useCallback((rowId: number, field: string, currentValue: any, tab: string) => {
-    if (!isExcelMode) return
     setEditingCell({ rowId, field, tab })
     setEditValue(String(currentValue))
-  }, [isExcelMode])
+  }, [])
 
   const handleCellSave = useCallback(() => {
     if (!editingCell) return
@@ -279,7 +279,7 @@ export default function ManagementModule() {
       }
     }
 
-    const cellClass = `cursor-pointer hover:bg-gray-50 p-2 rounded min-h-[32px] ${isSelected ? 'bg-blue-50' : ''} ${isExcelMode ? 'border border-transparent hover:border-blue-300' : ''}`
+    const cellClass = `cursor-pointer hover:bg-gray-50 p-2 rounded min-h-[32px] border border-transparent hover:border-blue-300 ${isSelected ? 'bg-blue-50' : ''}`
     
     if (field === 'estado') {
       const variant = value === "Aprobado" || value === "Pagado" || value === "Registrado" || value === "Activo" ? "default" : "secondary"
@@ -311,7 +311,7 @@ export default function ManagementModule() {
         {value}
       </div>
     )
-  }, [editingCell, editValue, selectedRows, isExcelMode, handleCellClick, handleCellSave, handleCellCancel])
+  }, [editingCell, editValue, selectedRows, handleCellClick, handleCellSave, handleCellCancel])
 
   const kpiFinancieros = {
     totalCostos: 17500,
@@ -355,14 +355,7 @@ export default function ManagementModule() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant={isExcelMode ? "default" : "outline"} 
-                onClick={() => setIsExcelMode(!isExcelMode)}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                {isExcelMode ? "Salir Modo Excel" : "Modo Excel"}
-              </Button>
-              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+              <Button variant="outline" onClick={() => setShowCostImportModal(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Importar Excel
               </Button>
@@ -373,40 +366,38 @@ export default function ManagementModule() {
             </div>
           </div>
 
-          {/* Controles del Modo Excel - Costos */}
-          {isExcelMode && (
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox 
-                    checked={selectedRows.costos.length === managementData.costos.length && managementData.costos.length > 0}
-                    onCheckedChange={() => handleSelectAll('costos')}
-                  />
-                  <span className="text-sm font-medium">
-                    {selectedRows.costos.length > 0 ? `${selectedRows.costos.length} seleccionadas` : "Seleccionar todo"}
-                  </span>
-                </div>
-                {selectedRows.costos.length > 0 && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteRows('costos')}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar Seleccionadas
-                  </Button>
-                )}
+          {/* Controles de Edicion - Costos */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={selectedRows.costos.length === managementData.costos.length && managementData.costos.length > 0}
+                  onCheckedChange={() => handleSelectAll('costos')}
+                />
+                <span className="text-sm font-medium">
+                  {selectedRows.costos.length > 0 ? `${selectedRows.costos.length} seleccionadas` : "Seleccionar todo"}
+                </span>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={() => handleAddRow('costos')} size="sm">
-                  <RowsIcon className="w-4 h-4 mr-2" />
-                  Agregar Fila
+              {selectedRows.costos.length > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteRows('costos')}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Seleccionadas
                 </Button>
-                {hasChanges && (
-                  <Button onClick={() => { setHasChanges(false); toast.success("Cambios guardados"); }} size="sm" variant="default">
-                    <Save className="w-4 h-4 mr-2" />
-                    Guardar Cambios
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
-          )}
+            <div className="flex gap-2">
+              <Button onClick={() => handleAddRow('costos')} size="sm">
+                <RowsIcon className="w-4 h-4 mr-2" />
+                Agregar Fila
+              </Button>
+              {hasChanges && (
+                <Button onClick={() => { setHasChanges(false); toast.success("Cambios guardados"); }} size="sm" variant="default">
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+              )}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card className="border-red-200 bg-red-50">
@@ -455,7 +446,7 @@ export default function ManagementModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {isExcelMode && <TableHead className="w-12">Sel.</TableHead>}
+                    <TableHead className="w-12">Sel.</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Categoría</TableHead>
                     <TableHead>Subcategoría</TableHead>
@@ -464,22 +455,19 @@ export default function ManagementModule() {
                     <TableHead>Proveedor</TableHead>
                     <TableHead>Documento</TableHead>
                     <TableHead>Estado</TableHead>
-                    {!isExcelMode && <TableHead>Acciones</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {managementData.costos.map((costo) => {
                     const isSelected = selectedRows.costos?.includes(costo.id)
                     return (
-                      <TableRow key={costo.id} className={isSelected && isExcelMode ? 'bg-blue-50' : ''}>
-                        {isExcelMode && (
-                          <TableCell>
-                            <Checkbox 
-                              checked={isSelected}
-                              onCheckedChange={() => handleSelectRow(costo.id, 'costos')}
-                            />
-                          </TableCell>
-                        )}
+                      <TableRow key={costo.id} className={isSelected ? 'bg-blue-50' : ''}>
+                        <TableCell>
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectRow(costo.id, 'costos')}
+                          />
+                        </TableCell>
                         <TableCell>{renderEditableCell(costo, 'fecha', 'costos')}</TableCell>
                         <TableCell>{renderEditableCell(costo, 'categoria', 'costos')}</TableCell>
                         <TableCell>{renderEditableCell(costo, 'subcategoria', 'costos')}</TableCell>
@@ -488,18 +476,6 @@ export default function ManagementModule() {
                         <TableCell>{renderEditableCell(costo, 'proveedor', 'costos')}</TableCell>
                         <TableCell>{renderEditableCell(costo, 'documento', 'costos')}</TableCell>
                         <TableCell>{renderEditableCell(costo, 'estado', 'costos')}</TableCell>
-                        {!isExcelMode && (
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="sm">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
                       </TableRow>
                     )
                   })}
@@ -528,14 +504,7 @@ export default function ManagementModule() {
               </Select>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant={isExcelMode ? "default" : "outline"} 
-                onClick={() => setIsExcelMode(!isExcelMode)}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                {isExcelMode ? "Salir Modo Excel" : "Modo Excel"}
-              </Button>
-              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+              <Button variant="outline" onClick={() => setShowExpenseImportModal(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Importar Excel
               </Button>
@@ -546,40 +515,38 @@ export default function ManagementModule() {
             </div>
           </div>
 
-          {/* Controles del Modo Excel - Gastos */}
-          {isExcelMode && (
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox 
-                    checked={selectedRows.gastos.length === managementData.gastos.length && managementData.gastos.length > 0}
-                    onCheckedChange={() => handleSelectAll('gastos')}
-                  />
-                  <span className="text-sm font-medium">
-                    {selectedRows.gastos.length > 0 ? `${selectedRows.gastos.length} seleccionadas` : "Seleccionar todo"}
-                  </span>
-                </div>
-                {selectedRows.gastos.length > 0 && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteRows('gastos')}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar Seleccionadas
-                  </Button>
-                )}
+          {/* Controles de Edicion - Gastos */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={selectedRows.gastos.length === managementData.gastos.length && managementData.gastos.length > 0}
+                  onCheckedChange={() => handleSelectAll('gastos')}
+                />
+                <span className="text-sm font-medium">
+                  {selectedRows.gastos.length > 0 ? `${selectedRows.gastos.length} seleccionadas` : "Seleccionar todo"}
+                </span>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={() => handleAddRow('gastos')} size="sm">
-                  <RowsIcon className="w-4 h-4 mr-2" />
-                  Agregar Fila
+              {selectedRows.gastos.length > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteRows('gastos')}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Seleccionadas
                 </Button>
-                {hasChanges && (
-                  <Button onClick={() => { setHasChanges(false); toast.success("Cambios guardados"); }} size="sm" variant="default">
-                    <Save className="w-4 h-4 mr-2" />
-                    Guardar Cambios
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
-          )}
+            <div className="flex gap-2">
+              <Button onClick={() => handleAddRow('gastos')} size="sm">
+                <RowsIcon className="w-4 h-4 mr-2" />
+                Agregar Fila
+              </Button>
+              {hasChanges && (
+                <Button onClick={() => { setHasChanges(false); toast.success("Cambios guardados"); }} size="sm" variant="default">
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+              )}
+            </div>
+          </div>
 
           <Card>
             <CardHeader>
@@ -590,7 +557,7 @@ export default function ManagementModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {isExcelMode && <TableHead className="w-12">Sel.</TableHead>}
+                    <TableHead className="w-12">Sel.</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Categoría</TableHead>
                     <TableHead>Subcategoría</TableHead>
@@ -598,22 +565,19 @@ export default function ManagementModule() {
                     <TableHead>Monto</TableHead>
                     <TableHead>Proveedor</TableHead>
                     <TableHead>Estado</TableHead>
-                    {!isExcelMode && <TableHead>Acciones</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {managementData.gastos.map((gasto) => {
                     const isSelected = selectedRows.gastos?.includes(gasto.id)
                     return (
-                      <TableRow key={gasto.id} className={isSelected && isExcelMode ? 'bg-blue-50' : ''}>
-                        {isExcelMode && (
-                          <TableCell>
-                            <Checkbox 
-                              checked={isSelected}
-                              onCheckedChange={() => handleSelectRow(gasto.id, 'gastos')}
-                            />
-                          </TableCell>
-                        )}
+                      <TableRow key={gasto.id} className={isSelected ? 'bg-blue-50' : ''}>
+                        <TableCell>
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectRow(gasto.id, 'gastos')}
+                          />
+                        </TableCell>
                         <TableCell>{renderEditableCell(gasto, 'fecha', 'gastos')}</TableCell>
                         <TableCell>{renderEditableCell(gasto, 'categoria', 'gastos')}</TableCell>
                         <TableCell>{renderEditableCell(gasto, 'subcategoria', 'gastos')}</TableCell>
@@ -621,18 +585,6 @@ export default function ManagementModule() {
                         <TableCell>{renderEditableCell(gasto, 'monto', 'gastos')}</TableCell>
                         <TableCell>{renderEditableCell(gasto, 'proveedor', 'gastos')}</TableCell>
                         <TableCell>{renderEditableCell(gasto, 'estado', 'gastos')}</TableCell>
-                        {!isExcelMode && (
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="sm">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
                       </TableRow>
                     )
                   })}
@@ -646,14 +598,7 @@ export default function ManagementModule() {
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <h3 className="text-lg font-semibold">Control de Capital y Financiamiento</h3>
             <div className="flex gap-2">
-              <Button 
-                variant={isExcelMode ? "default" : "outline"} 
-                onClick={() => setIsExcelMode(!isExcelMode)}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                {isExcelMode ? "Salir Modo Excel" : "Modo Excel"}
-              </Button>
-              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+              <Button variant="outline" onClick={() => setShowCapitalImportModal(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Importar Excel
               </Button>
@@ -716,40 +661,38 @@ export default function ManagementModule() {
             </Card>
           </div>
 
-          {/* Controles del Modo Excel - Capital */}
-          {isExcelMode && (
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox 
-                    checked={selectedRows.capital.length === managementData.capital.length && managementData.capital.length > 0}
-                    onCheckedChange={() => handleSelectAll('capital')}
-                  />
-                  <span className="text-sm font-medium">
-                    {selectedRows.capital.length > 0 ? `${selectedRows.capital.length} seleccionadas` : "Seleccionar todo"}
-                  </span>
-                </div>
-                {selectedRows.capital.length > 0 && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteRows('capital')}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar Seleccionadas
-                  </Button>
-                )}
+          {/* Controles de Edicion - Capital */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={selectedRows.capital.length === managementData.capital.length && managementData.capital.length > 0}
+                  onCheckedChange={() => handleSelectAll('capital')}
+                />
+                <span className="text-sm font-medium">
+                  {selectedRows.capital.length > 0 ? `${selectedRows.capital.length} seleccionadas` : "Seleccionar todo"}
+                </span>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={() => handleAddRow('capital')} size="sm">
-                  <RowsIcon className="w-4 h-4 mr-2" />
-                  Agregar Fila
+              {selectedRows.capital.length > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteRows('capital')}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Seleccionadas
                 </Button>
-                {hasChanges && (
-                  <Button onClick={() => { setHasChanges(false); toast.success("Cambios guardados"); }} size="sm" variant="default">
-                    <Save className="w-4 h-4 mr-2" />
-                    Guardar Cambios
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
-          )}
+            <div className="flex gap-2">
+              <Button onClick={() => handleAddRow('capital')} size="sm">
+                <RowsIcon className="w-4 h-4 mr-2" />
+                Agregar Fila
+              </Button>
+              {hasChanges && (
+                <Button onClick={() => { setHasChanges(false); toast.success("Cambios guardados"); }} size="sm" variant="default">
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+              )}
+            </div>
+          </div>
 
           <Card>
             <CardHeader>
@@ -760,7 +703,7 @@ export default function ManagementModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {isExcelMode && <TableHead className="w-12">Sel.</TableHead>}
+                    <TableHead className="w-12">Sel.</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descripción</TableHead>
@@ -768,22 +711,19 @@ export default function ManagementModule() {
                     <TableHead>Origen</TableHead>
                     <TableHead>Documento</TableHead>
                     <TableHead>Estado</TableHead>
-                    {!isExcelMode && <TableHead>Acciones</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {managementData.capital.map((capital) => {
                     const isSelected = selectedRows.capital?.includes(capital.id)
                     return (
-                      <TableRow key={capital.id} className={isSelected && isExcelMode ? 'bg-blue-50' : ''}>
-                        {isExcelMode && (
-                          <TableCell>
-                            <Checkbox 
-                              checked={isSelected}
-                              onCheckedChange={() => handleSelectRow(capital.id, 'capital')}
-                            />
-                          </TableCell>
-                        )}
+                      <TableRow key={capital.id} className={isSelected ? 'bg-blue-50' : ''}>
+                        <TableCell>
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectRow(capital.id, 'capital')}
+                          />
+                        </TableCell>
                         <TableCell>{renderEditableCell(capital, 'fecha', 'capital')}</TableCell>
                         <TableCell>{renderEditableCell(capital, 'tipo', 'capital')}</TableCell>
                         <TableCell>{renderEditableCell(capital, 'descripcion', 'capital')}</TableCell>
@@ -791,18 +731,6 @@ export default function ManagementModule() {
                         <TableCell>{renderEditableCell(capital, 'origen', 'capital')}</TableCell>
                         <TableCell>{renderEditableCell(capital, 'documento', 'capital')}</TableCell>
                         <TableCell>{renderEditableCell(capital, 'estado', 'capital')}</TableCell>
-                        {!isExcelMode && (
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="sm">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
                       </TableRow>
                     )
                   })}
@@ -920,9 +848,22 @@ export default function ManagementModule() {
         </TabsContent>
       </Tabs>
       
-      <BulkImportModal 
-        isOpen={showImportModal} 
-        onClose={() => setShowImportModal(false)} 
+      <BulkFinancialImportModal 
+        type="costos"
+        isOpen={showCostImportModal} 
+        onClose={() => setShowCostImportModal(false)} 
+      />
+      
+      <BulkFinancialImportModal 
+        type="gastos"
+        isOpen={showExpenseImportModal} 
+        onClose={() => setShowExpenseImportModal(false)} 
+      />
+      
+      <BulkFinancialImportModal 
+        type="capital"
+        isOpen={showCapitalImportModal} 
+        onClose={() => setShowCapitalImportModal(false)} 
       />
     </div>
   )

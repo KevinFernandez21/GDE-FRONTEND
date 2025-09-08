@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,10 +28,33 @@ import {
   Edit,
   Plus,
   Eye,
+  User,
 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function ConfigurationModule() {
   const [activeTab, setActiveTab] = useState("general")
+  const { user } = useAuth()
+
+  const handleSaveConfiguration = (section: string) => {
+    // Aquí iría la lógica para guardar en el backend
+    toast.success(`Configuración de ${section} guardada exitosamente`)
+  }
+
+  const handleTestConnection = () => {
+    // Simular prueba de conexión
+    toast.loading("Probando conexión...")
+    setTimeout(() => {
+      toast.success("Conexión exitosa")
+    }, 2000)
+  }
+
+  const handleBackup = () => {
+    toast.loading("Creando respaldo...")
+    setTimeout(() => {
+      toast.success("Respaldo creado exitosamente")
+    }, 3000)
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -90,7 +114,7 @@ export default function ConfigurationModule() {
                   <Label htmlFor="company-phone">Teléfono</Label>
                   <Input id="company-phone" defaultValue="+593 4 123-4567" />
                 </div>
-                <Button className="w-full">Guardar Cambios</Button>
+                <Button className="w-full" onClick={() => handleSaveConfiguration("empresa")}>Guardar Cambios</Button>
               </CardContent>
             </Card>
 
@@ -143,12 +167,37 @@ export default function ConfigurationModule() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5 text-purple-600" />
+                  Mi Perfil
+                </CardTitle>
+                <CardDescription>Información de tu cuenta de usuario</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="user-name">Nombre Completo</Label>
+                  <Input id="user-name" defaultValue={user?.name || ""} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="user-email">Correo Electrónico</Label>
+                  <Input id="user-email" defaultValue={user?.email || ""} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="user-role">Rol</Label>
+                  <Input id="user-role" defaultValue={user?.role || ""} disabled />
+                </div>
+                <Button className="w-full" onClick={() => handleSaveConfiguration("perfil")}>Actualizar Perfil</Button>
+              </CardContent>
+            </Card>
           </div>
 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-purple-600" />
+                <Calendar className="w-5 h-5 text-orange-600" />
                 Configuración de Inventario
               </CardTitle>
               <CardDescription>Parámetros específicos para la gestión de inventario</CardDescription>
@@ -597,7 +646,7 @@ export default function ConfigurationModule() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  <Button className="w-full justify-start h-12">
+                  <Button className="w-full justify-start h-12" onClick={handleBackup}>
                     <Download className="w-5 h-5 mr-3" />
                     <div className="text-left">
                       <p className="font-medium">Crear Respaldo Completo</p>
@@ -862,8 +911,8 @@ export default function ConfigurationModule() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button>Guardar Configuración</Button>
-                <Button variant="outline">Probar Conexión</Button>
+                <Button onClick={() => handleSaveConfiguration("API")}>Guardar Configuración</Button>
+                <Button variant="outline" onClick={handleTestConnection}>Probar Conexión</Button>
               </div>
             </CardContent>
           </Card>
