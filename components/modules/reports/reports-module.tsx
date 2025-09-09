@@ -12,6 +12,101 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export default function ReportsModule() {
   const [selectedReport, setSelectedReport] = useState<string | null>(null)
+  const [draggedItem, setDraggedItem] = useState<number | null>(null)
+  const [reportsOrder, setReportsOrder] = useState([
+    {
+      id: 'inventario-general',
+      title: 'Inventario General',
+      description: 'Estado completo del inventario por categorías, valores y rotación',
+      color: 'blue',
+      icon: 'Package'
+    },
+    {
+      id: 'rotacion-detallada', 
+      title: 'Análisis de Rotación',
+      description: 'Rotación detallada por producto, días de venta y clasificación ABC',
+      color: 'green',
+      icon: 'TrendingUp'
+    },
+    {
+      id: 'stock-critico',
+      title: 'Stock Crítico',
+      description: 'Productos con stock bajo, crítico y recomendaciones de reposición',
+      color: 'red', 
+      icon: 'AlertTriangle'
+    },
+    {
+      id: 'analisis-abc',
+      title: 'Análisis ABC',
+      description: 'Clasificación de productos por valor y estrategias de gestión',
+      color: 'purple',
+      icon: 'Target'
+    },
+    {
+      id: 'proveedores-inventario',
+      title: 'Análisis de Proveedores', 
+      description: 'Desempeño de proveedores, tiempos de entrega y optimización',
+      color: 'orange',
+      icon: 'Box'
+    },
+    {
+      id: 'valorizacion-detallada',
+      title: 'Valorización Detallada',
+      description: 'Valorización completa del inventario con métodos FIFO, LIFO y promedio',
+      color: 'indigo',
+      icon: 'Archive'
+    },
+    {
+      id: 'producto-detallado',
+      title: 'Reporte Producto por Producto',
+      description: 'Análisis exhaustivo individual de cada producto con toda su información detallada',
+      color: 'teal',
+      icon: 'Package'
+    }
+  ])
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedItem(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+    if (draggedItem === null) return
+
+    const newOrder = [...reportsOrder]
+    const draggedReport = newOrder[draggedItem]
+    
+    // Remove the dragged item
+    newOrder.splice(draggedItem, 1)
+    // Insert it at the new position
+    newOrder.splice(dropIndex, 0, draggedReport)
+    
+    setReportsOrder(newOrder)
+    setDraggedItem(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedItem(null)
+  }
+
+  const getIconComponent = (iconName: string) => {
+    const icons = {
+      Package,
+      TrendingUp, 
+      AlertTriangle,
+      Target,
+      Box,
+      Archive
+    }
+    const IconComponent = icons[iconName as keyof typeof icons] || Package
+    return IconComponent
+  }
 
   // Datos del inventario actual
   const inventoryReportData = [
@@ -219,19 +314,13 @@ export default function ReportsModule() {
       sku: "LDI-001",
       nombre: "Laptop Dell Inspiron",
       categoria: "Electrónicos",
-      precio: 850.0,
-      costo: 620.0,
-      margen: 27.1,
       stockActual: 45,
       stockMinimo: 35,
       stockOptimo: 60,
       puntoReorden: 40,
       rotacionAnual: 12.5,
       diasInventario: 29,
-      ventasUltimoMes: 25,
-      ventasUltimos3Meses: 78,
-      ventasAnuales: 180,
-      valorInventario: 38250,
+      ventasAcumuladas: 1285, // Total desde inicio
       ubicacionAlmacen: "A-15-B",
       proveedor: "Dell Inc",
       ultimaCompra: "2024-01-15",
@@ -239,26 +328,23 @@ export default function ReportsModule() {
       estado: "Activo",
       observaciones: "Producto estrella, alta demanda",
       fechaIngreso: "2023-05-10",
-      garantia: "2 años"
+      fechaUltimaVenta: "2024-01-22",
+      garantia: "2 años",
+      peso: "2.5 kg",
+      dimensiones: "35.6 x 25.1 x 2.3 cm"
     },
     {
       id: 2,
       sku: "MLX-002",
       nombre: "Mouse Logitech MX",
       categoria: "Accesorios",
-      precio: 65.0,
-      costo: 45.0,
-      margen: 30.8,
       stockActual: 120,
       stockMinimo: 65,
       stockOptimo: 150,
       puntoReorden: 80,
       rotacionAnual: 8.3,
       diasInventario: 44,
-      ventasUltimoMes: 42,
-      ventasUltimos3Meses: 125,
-      ventasAnuales: 520,
-      valorInventario: 7800,
+      ventasAcumuladas: 2847, // Total desde inicio
       ubicacionAlmacen: "B-08-C",
       proveedor: "Logitech Corp",
       ultimaCompra: "2024-01-20",
@@ -266,26 +352,23 @@ export default function ReportsModule() {
       estado: "Activo",
       observaciones: "Buena rotación, stock estable",
       fechaIngreso: "2023-08-15",
-      garantia: "3 años"
+      fechaUltimaVenta: "2024-01-23",
+      garantia: "3 años",
+      peso: "0.11 kg",
+      dimensiones: "12.5 x 6.6 x 4.2 cm"
     },
     {
       id: 3,
       sku: "MSM-003",
       nombre: 'Monitor Samsung 24"',
       categoria: "Electrónicos",
-      precio: 280.0,
-      costo: 195.0,
-      margen: 30.4,
       stockActual: 8,
       stockMinimo: 12,
       stockOptimo: 30,
       puntoReorden: 15,
       rotacionAnual: 2.1,
       diasInventario: 174,
-      ventasUltimoMes: 8,
-      ventasUltimos3Meses: 15,
-      ventasAnuales: 42,
-      valorInventario: 2240,
+      ventasAcumuladas: 156, // Total desde inicio
       ubicacionAlmacen: "A-22-A",
       proveedor: "Samsung Electronics",
       ultimaCompra: "2024-01-10",
@@ -293,26 +376,23 @@ export default function ReportsModule() {
       estado: "Stock Crítico",
       observaciones: "Baja rotación, evaluar descontinuar",
       fechaIngreso: "2023-11-20",
-      garantia: "1 año"
+      fechaUltimaVenta: "2024-01-18",
+      garantia: "1 año",
+      peso: "3.8 kg",
+      dimensiones: "53.9 x 32.3 x 6.8 cm"
     },
     {
       id: 4,
       sku: "TCL-004",
       nombre: "Teclado Mecánico RGB",
       categoria: "Accesorios",
-      precio: 120.0,
-      costo: 85.0,
-      margen: 29.2,
       stockActual: 25,
       stockMinimo: 20,
       stockOptimo: 40,
       puntoReorden: 25,
       rotacionAnual: 6.8,
       diasInventario: 54,
-      ventasUltimoMes: 18,
-      ventasUltimos3Meses: 52,
-      ventasAnuales: 215,
-      valorInventario: 3000,
+      ventasAcumuladas: 892, // Total desde inicio
       ubicacionAlmacen: "B-12-D",
       proveedor: "TechKeys Ltd",
       ultimaCompra: "2024-01-18",
@@ -320,26 +400,23 @@ export default function ReportsModule() {
       estado: "Activo",
       observaciones: "Demanda estacional, incrementa en diciembre",
       fechaIngreso: "2023-07-30",
-      garantia: "2 años"
+      fechaUltimaVenta: "2024-01-21",
+      garantia: "2 años",
+      peso: "1.2 kg",
+      dimensiones: "44 x 13.8 x 4.5 cm"
     },
     {
       id: 5,
       sku: "WCH-005",
       nombre: "Webcam HD 1080p",
       categoria: "Electrónicos",
-      precio: 45.0,
-      costo: 32.0,
-      margen: 28.9,
       stockActual: 4,
       stockMinimo: 10,
       stockOptimo: 25,
       puntoReorden: 12,
       rotacionAnual: 15.2,
       diasInventario: 24,
-      ventasUltimoMes: 35,
-      ventasUltimos3Meses: 98,
-      ventasAnuales: 425,
-      valorInventario: 180,
+      ventasAcumuladas: 1547, // Total desde inicio
       ubicacionAlmacen: "C-05-A",
       proveedor: "TechSupply",
       ultimaCompra: "2023-12-20",
@@ -347,26 +424,23 @@ export default function ReportsModule() {
       estado: "Stock Crítico",
       observaciones: "URGENTE: Reabastecer inmediatamente",
       fechaIngreso: "2023-04-12",
-      garantia: "1 año"
+      fechaUltimaVenta: "2024-01-23",
+      garantia: "1 año",
+      peso: "0.15 kg",
+      dimensiones: "9.4 x 2.7 x 2.7 cm"
     },
     {
       id: 6,
       sku: "IHP-006",
       nombre: "Impresora HP LaserJet",
       categoria: "Oficina",
-      precio: 350.0,
-      costo: 250.0,
-      margen: 28.6,
       stockActual: 6,
       stockMinimo: 8,
       stockOptimo: 20,
       puntoReorden: 10,
       rotacionAnual: 4.5,
       diasInventario: 81,
-      ventasUltimoMes: 5,
-      ventasUltimos3Meses: 18,
-      ventasAnuales: 65,
-      valorInventario: 2100,
+      ventasAcumuladas: 287, // Total desde inicio
       ubicacionAlmacen: "D-10-B",
       proveedor: "HP Direct",
       ultimaCompra: "2024-01-08",
@@ -374,7 +448,10 @@ export default function ReportsModule() {
       estado: "Stock Bajo",
       observaciones: "Producto corporativo, ventas B2B",
       fechaIngreso: "2023-09-05",
-      garantia: "3 años"
+      fechaUltimaVenta: "2024-01-19",
+      garantia: "3 años",
+      peso: "7.2 kg",
+      dimensiones: "38.5 x 33.6 x 18.3 cm"
     }
   ]
 
@@ -993,18 +1070,18 @@ export default function ReportsModule() {
                 <p className="text-sm text-blue-600">en análisis detallado</p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-800">Valor Total</h3>
+                <h3 className="font-semibold text-green-800">Ventas Acumuladas</h3>
                 <p className="text-2xl font-bold text-green-600">
-                  ${productDetailData.reduce((sum, p) => sum + p.valorInventario, 0).toLocaleString()}
+                  {productDetailData.reduce((sum, p) => sum + p.ventasAcumuladas, 0).toLocaleString()}
                 </p>
-                <p className="text-sm text-green-600">valor inventario</p>
+                <p className="text-sm text-green-600">unidades hasta el momento</p>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-orange-800">Margen Promedio</h3>
+                <h3 className="font-semibold text-orange-800">Stock Total</h3>
                 <p className="text-2xl font-bold text-orange-600">
-                  {(productDetailData.reduce((sum, p) => sum + p.margen, 0) / productDetailData.length).toFixed(1)}%
+                  {productDetailData.reduce((sum, p) => sum + p.stockActual, 0)}
                 </p>
-                <p className="text-sm text-orange-600">rentabilidad</p>
+                <p className="text-sm text-orange-600">unidades en inventario</p>
               </div>
               <div className="bg-red-50 p-4 rounded-lg">
                 <h3 className="font-semibold text-red-800">Productos Críticos</h3>
@@ -1076,14 +1153,12 @@ export default function ReportsModule() {
                         <TableHead>Producto</TableHead>
                         <TableHead>Categoría</TableHead>
                         <TableHead>Stock</TableHead>
-                        <TableHead>Valor Inv.</TableHead>
-                        <TableHead>Precio/Costo</TableHead>
-                        <TableHead>Margen %</TableHead>
                         <TableHead>Rotación</TableHead>
                         <TableHead>Días Inv.</TableHead>
-                        <TableHead>Ventas</TableHead>
+                        <TableHead>Ventas Totales</TableHead>
                         <TableHead>Ubicación</TableHead>
                         <TableHead>Proveedor</TableHead>
+                        <TableHead>Última Venta</TableHead>
                         <TableHead>Estado</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1118,20 +1193,6 @@ export default function ReportsModule() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="font-semibold text-green-600">
-                            ${product.valorInventario.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-xs">
-                              <p className="font-semibold text-green-600">${product.precio}</p>
-                              <p className="text-gray-500">${product.costo}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={product.margen > 30 ? "default" : product.margen > 20 ? "secondary" : "destructive"}>
-                              {product.margen}%
-                            </Badge>
-                          </TableCell>
                           <TableCell>
                             <div className="text-center">
                               <p className="font-bold">{product.rotacionAnual}x</p>
@@ -1146,11 +1207,10 @@ export default function ReportsModule() {
                           <TableCell className="text-center font-mono text-sm">
                             {product.diasInventario} días
                           </TableCell>
-                          <TableCell>
-                            <div className="text-xs space-y-1">
-                              <p><strong>Mes:</strong> {product.ventasUltimoMes}</p>
-                              <p><strong>3M:</strong> {product.ventasUltimos3Meses}</p>
-                              <p><strong>Año:</strong> {product.ventasAnuales}</p>
+                          <TableCell className="text-center">
+                            <div>
+                              <p className="font-bold text-lg text-blue-600">{product.ventasAcumuladas.toLocaleString()}</p>
+                              <p className="text-xs text-gray-500">unidades totales</p>
                             </div>
                           </TableCell>
                           <TableCell className="font-mono text-sm font-bold text-blue-600">
@@ -1160,6 +1220,12 @@ export default function ReportsModule() {
                             <div>
                               <p className="font-medium">{product.proveedor}</p>
                               <p className="text-xs text-gray-500">Última: {product.ultimaCompra}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <div>
+                              <p className="font-medium">{product.fechaUltimaVenta}</p>
+                              <p className="text-xs text-gray-500">última venta</p>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -1201,13 +1267,6 @@ export default function ReportsModule() {
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <h4 className="font-semibold mb-2 text-blue-700">📊 Información Financiera</h4>
-                        <p><strong>Precio Venta:</strong> ${product.precio}</p>
-                        <p><strong>Costo:</strong> ${product.costo}</p>
-                        <p><strong>Margen:</strong> <span className="text-green-600 font-bold">{product.margen}%</span></p>
-                        <p><strong>Valor Inv:</strong> ${product.valorInventario.toLocaleString()}</p>
-                      </div>
-                      <div>
                         <h4 className="font-semibold mb-2 text-green-700">📦 Stock & Almacén</h4>
                         <p><strong>Stock Actual:</strong> <span className={product.stockActual <= product.stockMinimo ? 'text-red-600 font-bold' : 'font-semibold'}>{product.stockActual}</span></p>
                         <p><strong>Stock Mínimo:</strong> {product.stockMinimo}</p>
@@ -1215,11 +1274,11 @@ export default function ReportsModule() {
                         <p><strong>Ubicación:</strong> <span className="font-mono text-blue-600">{product.ubicacionAlmacen}</span></p>
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-2 text-purple-700">📈 Rendimiento</h4>
+                        <h4 className="font-semibold mb-2 text-purple-700">📈 Rendimiento & Ventas</h4>
                         <p><strong>Rotación:</strong> {product.rotacionAnual}x/año</p>
                         <p><strong>Días Inventario:</strong> {product.diasInventario}</p>
-                        <p><strong>Ventas Mes:</strong> {product.ventasUltimoMes}</p>
-                        <p><strong>Ventas Año:</strong> {product.ventasAnuales}</p>
+                        <p><strong>Ventas Totales:</strong> <span className="text-blue-600 font-bold">{product.ventasAcumuladas.toLocaleString()}</span></p>
+                        <p><strong>Última Venta:</strong> {product.fechaUltimaVenta}</p>
                       </div>
                       <div>
                         <h4 className="font-semibold mb-2 text-orange-700">🏢 Proveedor & Fechas</h4>
@@ -1227,6 +1286,13 @@ export default function ReportsModule() {
                         <p><strong>Última Compra:</strong> {product.ultimaCompra}</p>
                         <p><strong>Próx. Revisión:</strong> {product.proximaRevision}</p>
                         <p><strong>Garantía:</strong> {product.garantia}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2 text-blue-700">📋 Especificaciones</h4>
+                        <p><strong>Peso:</strong> {product.peso}</p>
+                        <p><strong>Dimensiones:</strong> {product.dimensiones}</p>
+                        <p><strong>Ingreso:</strong> {product.fechaIngreso}</p>
+                        <p><strong>Categoría:</strong> {product.categoria}</p>
                       </div>
                     </div>
                     {product.observaciones && (
@@ -1279,8 +1345,8 @@ export default function ReportsModule() {
                       {productDetailData.filter(p => p.rotacionAnual > 10).map((product, index) => (
                         <li key={index} className="border-b border-green-200 pb-2">
                           <p className="font-semibold">{product.nombre}</p>
-                          <p>Rotación: {product.rotacionAnual}x - Margen: {product.margen}%</p>
-                          <p className="text-xs">Valor inventario: ${product.valorInventario.toLocaleString()}</p>
+                          <p>Rotación: {product.rotacionAnual}x - Ventas: {product.ventasAcumuladas.toLocaleString()}</p>
+                          <p className="text-xs">Ubicación: {product.ubicacionAlmacen} - Stock: {product.stockActual}</p>
                         </li>
                       ))}
                     </ul>
@@ -1380,119 +1446,68 @@ export default function ReportsModule() {
         </Card>
       </div>
 
-      {/* Reportes de inventario disponibles */}
+      {/* Reportes de inventario disponibles - Con Drag & Drop */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Layers className="w-5 h-5 text-gray-600" />
+          <h3 className="text-lg font-semibold">Reportes Disponibles</h3>
+          <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">Arrastra para reorganizar</span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow border-blue-200 hover:border-blue-400">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-700">
-              <Package className="w-5 h-5" />
-              Inventario General
-            </CardTitle>
-            <CardDescription>Estado completo del inventario por categorías, valores y rotación</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => setSelectedReport("inventario-general")}>
-              <Eye className="w-4 h-4 mr-2" />
-              Ver Reporte
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow border-green-200 hover:border-green-400">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700">
-              <TrendingUp className="w-5 h-5" />
-              Análisis de Rotación
-            </CardTitle>
-            <CardDescription>Rotación detallada por producto, días de venta y clasificación ABC</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => setSelectedReport("rotacion-detallada")}>
-              <Activity className="w-4 h-4 mr-2" />
-              Analizar Rotación
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow border-red-200 hover:border-red-400">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
-              <AlertTriangle className="w-5 h-5" />
-              Stock Crítico
-            </CardTitle>
-            <CardDescription>Productos con stock bajo, crítico y recomendaciones de reposición</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full bg-red-600 hover:bg-red-700" onClick={() => setSelectedReport("stock-critico")}>
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Ver Alertas
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow border-purple-200 hover:border-purple-400">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-purple-700">
-              <Target className="w-5 h-5" />
-              Análisis ABC
-            </CardTitle>
-            <CardDescription>Clasificación de productos por valor y estrategias de gestión</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={() => setSelectedReport("analisis-abc")}>
-              <Layers className="w-4 h-4 mr-2" />
-              Ver Análisis ABC
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow border-orange-200 hover:border-orange-400">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-700">
-              <Box className="w-5 h-5" />
-              Análisis de Proveedores
-            </CardTitle>
-            <CardDescription>Desempeño de proveedores, tiempos de entrega y optimización</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full bg-orange-600 hover:bg-orange-700" onClick={() => setSelectedReport("proveedores-inventario")}>
-              <Box className="w-4 h-4 mr-2" />
-              Analizar Proveedores
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow border-indigo-200 hover:border-indigo-400">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-indigo-700">
-              <Archive className="w-5 h-5" />
-              Valorización Detallada
-            </CardTitle>
-            <CardDescription>Valorización completa del inventario con métodos FIFO, LIFO y promedio</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => setSelectedReport("valorizacion-detallada")}>
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Ver Valorización
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow border-teal-200 hover:border-teal-400">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-teal-700">
-              <Package className="w-5 h-5" />
-              Reporte Producto por Producto
-            </CardTitle>
-            <CardDescription>Análisis exhaustivo individual de cada producto con toda su información detallada</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full bg-teal-600 hover:bg-teal-700" onClick={() => setSelectedReport("producto-detallado")}>
-              <Eye className="w-4 h-4 mr-2" />
-              Ver Detalle Completo
-            </Button>
-          </CardContent>
-        </Card>
+        {reportsOrder.map((report, index) => {
+          const IconComponent = getIconComponent(report.icon)
+          const colorClasses = {
+            blue: { border: 'border-blue-200 hover:border-blue-400', title: 'text-blue-700', button: 'bg-blue-600 hover:bg-blue-700' },
+            green: { border: 'border-green-200 hover:border-green-400', title: 'text-green-700', button: 'bg-green-600 hover:bg-green-700' },
+            red: { border: 'border-red-200 hover:border-red-400', title: 'text-red-700', button: 'bg-red-600 hover:bg-red-700' },
+            purple: { border: 'border-purple-200 hover:border-purple-400', title: 'text-purple-700', button: 'bg-purple-600 hover:bg-purple-700' },
+            orange: { border: 'border-orange-200 hover:border-orange-400', title: 'text-orange-700', button: 'bg-orange-600 hover:bg-orange-700' },
+            indigo: { border: 'border-indigo-200 hover:border-indigo-400', title: 'text-indigo-700', button: 'bg-indigo-600 hover:bg-indigo-700' },
+            teal: { border: 'border-teal-200 hover:border-teal-400', title: 'text-teal-700', button: 'bg-teal-600 hover:bg-teal-700' }
+          }
+          const colors = colorClasses[report.color as keyof typeof colorClasses]
+          
+          return (
+            <Card 
+              key={report.id}
+              className={`cursor-move hover:shadow-lg transition-all duration-200 ${colors.border} ${
+                draggedItem === index ? 'opacity-50 scale-105 rotate-2' : ''
+              }`}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, index)}
+              onDragEnd={handleDragEnd}
+            >
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className={`flex items-center gap-2 ${colors.title}`}>
+                    <IconComponent className="w-5 h-5" />
+                    {report.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-1 text-gray-400">
+                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                  </div>
+                </div>
+                <CardDescription>{report.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  className={`w-full ${colors.button}`} 
+                  onClick={() => setSelectedReport(report.id)}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Ver Reporte
+                </Button>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       {/* Sección de reportes personalizados */}
