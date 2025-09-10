@@ -73,13 +73,14 @@ export default function Header() {
                 <Avatar className="w-6 h-6 mr-2">
                   <AvatarImage src="/placeholder.svg" />
                   <AvatarFallback>
-                    {user?.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                    {user?.full_name
+                      ? user.full_name.split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                      : "U"}
                   </AvatarFallback>
                 </Avatar>
-                {user?.name}
+                {user?.full_name}
                 <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>

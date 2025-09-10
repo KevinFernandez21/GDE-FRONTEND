@@ -30,7 +30,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [editedUser, setEditedUser] = useState({
-    name: user?.name || "",
+    name: user?.full_name || "",
     email: user?.email || "",
     username: user?.username || "",
   })
@@ -43,7 +43,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const handleCancel = () => {
     setEditedUser({
-      name: user?.name || "",
+      name: user?.full_name || "",
       email: user?.email || "",
       username: user?.username || "",
     })
@@ -78,7 +78,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <Avatar className="w-24 h-24">
                   <AvatarImage src="/placeholder.svg" />
                   <AvatarFallback className="text-2xl">
-                    {user.name
+                    {user.full_name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")}
@@ -102,7 +102,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       className="mt-1"
                     />
                   ) : (
-                    <p className="mt-1 p-2 bg-gray-50 rounded-md">{user.name}</p>
+                    <p className="mt-1 p-2 bg-gray-50 rounded-md">{user.full_name}</p>
                   )}
                 </div>
                 <div>
@@ -220,13 +220,17 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {user.permissions.map((permission, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {permission}
-                      </Badge>
-                    </div>
-                  ))}
+                  {user.permissions && user.permissions.length > 0 ? (
+                    user.permissions.map((permission, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {permission}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">No se han asignado permisos específicos</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

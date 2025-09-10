@@ -69,7 +69,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       onLogin({
         username: user.username,
         role: user.role,
-        name: user.name,
+        name: user.full_name,
       })
     } else {
       // Credenciales incorrectas

@@ -68,19 +68,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setError("")
     setIsLoading(true)
 
-    // Simular delay de autenticación
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Validar credenciales
-    const user = users.find((u) => u.username === username && u.password === password)
-
-    if (user) {
-      // Login exitoso
-      login(user)
-      onLogin()
-    } else {
-      // Credenciales incorrectas
-      setError("Usuario o contraseña incorrectos")
+    try {
+      // Usar la API real para el login
+      const result = await login(username, password)
+      
+      if (result.success) {
+        onLogin()
+      } else {
+        setError(result.error || "Usuario o contraseña incorrectos")
+      }
+    } catch (error) {
+      setError("Error de conexión con el servidor")
     }
 
     setIsLoading(false)

@@ -179,7 +179,7 @@ export default function ConfigurationModule() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="user-name">Nombre Completo</Label>
-                  <Input id="user-name" defaultValue={user?.name || ""} />
+                  <Input id="user-name" defaultValue={user?.full_name || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="user-email">Correo Electrónico</Label>
