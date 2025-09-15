@@ -2,7 +2,9 @@
  * API Client for GDE Backend
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+import { config } from './config';
+
+const API_BASE_URL = config.apiBaseUrl;
 
 interface ApiResponse<T> {
   data?: T;
@@ -27,7 +29,10 @@ class ApiClient {
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
-    
+
+    // Debug log
+    console.log('ApiClient initialized with baseUrl:', this.baseUrl);
+
     // Load token from localStorage if available
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('gde_token');

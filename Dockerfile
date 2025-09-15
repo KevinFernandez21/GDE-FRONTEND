@@ -18,8 +18,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Environment variables for build
-ENV NEXT_PUBLIC_API_URL=http://localhost:8000
-ENV NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+ENV NEXT_PUBLIC_API_URL=http://yummy-cymbre-orangecorp-43ef562b.koyeb.app
+ENV NEXT_PUBLIC_API_BASE_URL=http://yummy-cymbre-orangecorp-43ef562b.koyeb.app/api/v1
 
 # Build the application
 RUN corepack enable pnpm && pnpm build
