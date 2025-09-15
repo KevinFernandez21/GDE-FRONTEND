@@ -86,7 +86,10 @@ export function FileUpload({
       formData.append('related_id', relatedId)
     }
 
-    const response = await fetch('/api/v1/files/upload', {
+    // TODO: Implement file upload endpoint in backend
+    throw new Error('File upload functionality not yet implemented in backend')
+
+    /* const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/files/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`

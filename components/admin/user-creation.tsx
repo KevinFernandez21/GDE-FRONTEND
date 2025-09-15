@@ -163,7 +163,7 @@ export function UserCreation({ currentUserRole, onUserCreated, className = "" }:
         is_active: true
       }
 
-      const response = await fetch('/api/v1/users/', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

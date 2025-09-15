@@ -110,7 +110,7 @@ export function UserActivityMonitor({ currentUserRole, refreshInterval = 30000, 
         params.append('user_id', appliedFilters.userId)
       }
 
-      const response = await fetch(`/api/v1/activity/logs?${params.toString()}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logs/activities?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -188,7 +188,10 @@ export function UserActivityMonitor({ currentUserRole, refreshInterval = 30000, 
       if (filters.dateRange && filters.dateRange !== 'all') params.append('date_range', filters.dateRange)
       if (filters.userId) params.append('user_id', filters.userId)
 
-      const response = await fetch(`/api/v1/activity/export?${params.toString()}`, {
+      // TODO: Implement export endpoint in backend
+      throw new Error('Export functionality not yet implemented in backend')
+
+      /* const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logs/export?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }

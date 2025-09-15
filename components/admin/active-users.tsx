@@ -83,7 +83,10 @@ export function ActiveUsers({ refreshInterval = 30000, className = "" }: ActiveU
 
   const fetchActiveUsers = useCallback(async () => {
     try {
-      const response = await fetch('/api/v1/activity/online-users', {
+      // TODO: Implement online users endpoint in backend
+      throw new Error('Online users functionality not yet implemented in backend')
+
+      /* const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/activity/online-users`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
