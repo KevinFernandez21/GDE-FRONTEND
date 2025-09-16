@@ -214,7 +214,7 @@ export function UserActivityMonitor({ currentUserRole, refreshInterval = 30000, 
       toast({
         title: "Exportación exitosa",
         description: "Las actividades se han exportado correctamente."
-      })
+      }) */
     } catch (error) {
       toast({
         title: "Error en exportación",

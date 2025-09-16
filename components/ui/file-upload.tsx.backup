@@ -43,7 +43,7 @@ const formatFileSize = (bytes: number): string => {
 
 const getFileIcon = (fileName: string) => {
   const extension = fileName.split('.').pop()?.toLowerCase()
-
+  
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension || '')) {
     return <Image className="h-4 w-4" />
   }
@@ -78,7 +78,7 @@ export function FileUpload({
     const formData = new FormData()
     formData.append('file', file)
     formData.append('upload_type', uploadType)
-
+    
     if (relatedTable) {
       formData.append('related_table', relatedTable)
     }
@@ -102,7 +102,7 @@ export function FileUpload({
     }
 
     const result = await response.json()
-    return result.data.file_id */
+    return result.data.file_id
   }
 
   const handleFiles = useCallback(async (newFiles: File[]) => {
@@ -135,7 +135,7 @@ export function FileUpload({
 
     // Create file items
     const newFileItems: FileItem[] = validFiles.map(file => ({
-      id: Math.random().toString(36).substring(2, 11),
+      id: Math.random().toString(36).substr(2, 9),
       name: file.name,
       size: file.size,
       type: file.type,
@@ -151,19 +151,19 @@ export function FileUpload({
       try {
         // Simulate progress
         const progressInterval = setInterval(() => {
-          setFiles(prev => prev.map(f =>
-            f.id === fileItem.id
+          setFiles(prev => prev.map(f => 
+            f.id === fileItem.id 
               ? { ...f, progress: Math.min(f.progress + 10, 90) }
               : f
           ))
         }, 200)
 
         const fileId = await uploadFile(fileItem.file!)
-
+        
         clearInterval(progressInterval)
-
-        setFiles(prev => prev.map(f =>
-          f.id === fileItem.id
+        
+        setFiles(prev => prev.map(f => 
+          f.id === fileItem.id 
             ? { ...f, status: 'completed', progress: 100, url: `/api/v1/files/${fileId}/download` }
             : f
         ))
@@ -174,8 +174,8 @@ export function FileUpload({
         })
 
       } catch (error) {
-        setFiles(prev => prev.map(f =>
-          f.id === fileItem.id
+        setFiles(prev => prev.map(f => 
+          f.id === fileItem.id 
             ? { ...f, status: 'error', progress: 0 }
             : f
         ))
@@ -189,7 +189,7 @@ export function FileUpload({
     })
 
     await Promise.all(uploadPromises)
-
+    
     const completedFiles = files.filter(f => f.status === 'completed')
     if (onUploadComplete && completedFiles.length > 0) {
       onUploadComplete(completedFiles)
@@ -199,7 +199,7 @@ export function FileUpload({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-
+    
     const droppedFiles = Array.from(e.dataTransfer.files)
     handleFiles(droppedFiles)
   }, [handleFiles])
@@ -259,8 +259,8 @@ export function FileUpload({
       <div
         className={`
           border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-          ${isDragging
-            ? 'border-blue-500 bg-blue-50'
+          ${isDragging 
+            ? 'border-blue-500 bg-blue-50' 
             : 'border-gray-300 hover:border-gray-400'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
@@ -277,7 +277,7 @@ export function FileUpload({
         <p className="text-sm text-gray-500 mt-2">
           {multiple ? `Hasta ${maxFiles} archivos` : 'Un archivo'} • Máximo {formatFileSize(maxSize)} cada uno
         </p>
-
+        
         <input
           ref={fileInputRef}
           type="file"
@@ -301,7 +301,7 @@ export function FileUpload({
                 <div className="flex-shrink-0">
                   {getFileIcon(file.name)}
                 </div>
-
+                
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {file.name}
@@ -309,7 +309,7 @@ export function FileUpload({
                   <p className="text-xs text-gray-500">
                     {formatFileSize(file.size)}
                   </p>
-
+                  
                   {file.status === 'uploading' && (
                     <div className="mt-2">
                       <Progress value={file.progress} className="h-1" />

@@ -142,7 +142,7 @@ export default function EmptyDashboard() {
                   <div>
                     <h3 className="font-semibold mb-2">Cómo empezar:</h3>
                     <ol className="text-sm space-y-1 text-slate-400">
-                      <li>1. Ve a la pestaña "Despachos" para crear guías</li>
+                      <li>1. Ve a la pestaña &quot;Despachos&quot; para crear guías</li>
                       <li>2. Genera códigos QR para seguimiento</li>
                       <li>3. Usa el móvil para escanear en tiempo real</li>
                       <li>4. Importa datos masivos con archivos</li>

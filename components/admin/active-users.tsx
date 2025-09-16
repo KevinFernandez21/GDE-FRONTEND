@@ -99,7 +99,7 @@ export function ActiveUsers({ refreshInterval = 30000, className = "" }: ActiveU
       const result = await response.json()
       setActiveUsers(result.data.online_users)
       setTotalOnline(result.data.total_online)
-      setError(null)
+      setError(null) */
     } catch (err) {
       console.error('Error fetching active users:', err)
       setError('Error al cargar usuarios activos')
