@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const BACKEND_URL = 'http://yummy-cymbre-orangecorp-43ef562b.koyeb.app';
+const BACKEND_URL = 'https://yummy-cymbre-orangecorp-43ef562b.koyeb.app';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { path } = req.query;
@@ -17,6 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     console.log(`Proxying request: ${req.method} ${targetUrl}`);
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Request body:', req.body);
 
     // Prepare headers
     const headers: Record<string, string> = {};
@@ -73,9 +75,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (error) {
     console.error('Proxy error:', error);
+    console.error('Target URL was:', targetUrl);
+    console.error('Original headers:', req.headers);
     res.status(500).json({
       error: 'Proxy request failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      targetUrl: targetUrl
     });
   }
 }
