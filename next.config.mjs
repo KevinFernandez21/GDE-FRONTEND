@@ -9,8 +9,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Remove standalone for Vercel deployment
-  // output: 'standalone',
+  // Enable standalone output for Docker deployment
+  output: 'standalone',
   
   // Environment variables
   env: {

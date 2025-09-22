@@ -108,7 +108,7 @@ class ApiClient {
       token_type: string;
       expires_in: number;
       user: any;
-    }>('/auth/login', {
+    }>('/auth/login-simple', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
