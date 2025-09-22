@@ -1,6 +1,7 @@
 "use client"
 
 import { Package, Home, Truck, RotateCcw, FileText, Settings, LogOut } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/auth-context"
@@ -23,8 +24,14 @@ export default function Sidebar() {
     <div className="w-64 bg-slate-900 text-white h-screen flex flex-col">
       <div className="p-6 border-b border-slate-700">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
-            <Package className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
+            <Image
+              src="/logo-iem.png"
+              alt="Importadora El Mayorista"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
           </div>
           <div>
             <h1 className="font-bold text-lg">IMPORTADORA</h1>
