@@ -1,6 +1,7 @@
 "use client"
 
 import { useApp } from "@/contexts/app-context"
+import { useAuth } from "@/contexts/auth-context"
 import Sidebar from "./sidebar"
 import Header from "./header"
 import DashboardModule from "@/components/modules/dashboard/dashboard-module"
@@ -10,9 +11,13 @@ import ManagementModule from "@/components/modules/management/management-module"
 import ReportsModule from "@/components/modules/reports/reports-module"
 import ConfigurationModule from "@/components/modules/configuration/configuration-module"
 import { NotificationProvider } from "@/components/notifications/notification-provider"
+import AccountingTutorial from "@/components/accounting-tutorial"
+import { useTutorial } from "@/hooks/useTutorial"
 
 export default function MainLayout() {
   const { activeModule } = useApp()
+  const { user } = useAuth()
+  const { isOpen: isTutorialOpen, closeTutorial, openTutorial, hasCompleted } = useTutorial(user?.role)
 
   const renderModule = () => {
     switch (activeModule) {
@@ -38,9 +43,16 @@ export default function MainLayout() {
       <div className="flex h-screen bg-gray-50">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Header />
+          <Header onOpenTutorial={openTutorial} showTutorialButton={user?.role === 'contador'} />
           <main className="flex-1 overflow-y-auto">{renderModule()}</main>
         </div>
+
+        {/* Tutorial para usuarios contadores */}
+        <AccountingTutorial
+          isOpen={isTutorialOpen}
+          onClose={closeTutorial}
+          userRole={user?.role}
+        />
       </div>
     </NotificationProvider>
   )

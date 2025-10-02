@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Users,
   Shield,
@@ -34,7 +36,19 @@ import { useAuth } from "@/contexts/auth-context"
 
 export default function ConfigurationModule() {
   const [activeTab, setActiveTab] = useState("general")
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false)
+  const [newUser, setNewUser] = useState({
+    full_name: "",
+    email: "",
+    username: "",
+    password: "",
+    role: "",
+    notes: ""
+  })
+  const [isCreatingUser, setIsCreatingUser] = useState(false)
   const { user } = useAuth()
+
+  const isAdminOrProgrammer = user?.role === 'admin' || user?.role === 'programador'
 
   const handleSaveConfiguration = (section: string) => {
     // Aquí iría la lógica para guardar en el backend
@@ -56,18 +70,95 @@ export default function ConfigurationModule() {
     }, 3000)
   }
 
+  const handleCreateUser = async () => {
+    if (!newUser.full_name || !newUser.email || !newUser.username || !newUser.password || !newUser.role) {
+      toast.error("Por favor completa todos los campos obligatorios")
+      return
+    }
+
+    if (newUser.password.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newUser.email)) {
+      toast.error("Por favor ingresa un email válido")
+      return
+    }
+
+    setIsCreatingUser(true)
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        toast.error("No autorizado")
+        return
+      }
+
+      const response = await fetch('http://localhost:8000/api/v1/users', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          full_name: newUser.full_name,
+          email: newUser.email,
+          username: newUser.username,
+          password: newUser.password,
+          role: newUser.role,
+          notes: newUser.notes || null
+        })
+      })
+
+      if (response.ok) {
+        const createdUser = await response.json()
+        toast.success(`Usuario ${newUser.full_name} creado exitosamente`)
+        setNewUser({
+          full_name: "",
+          email: "",
+          username: "",
+          password: "",
+          role: "",
+          notes: ""
+        })
+        setShowCreateUserModal(false)
+      } else {
+        const error = await response.json()
+        toast.error(`Error: ${error.detail || 'No se pudo crear el usuario'}`)
+      }
+    } catch (error) {
+      console.error('Error creating user:', error)
+      toast.error("Error conectando al servidor")
+    } finally {
+      setIsCreatingUser(false)
+    }
+  }
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    let password = ''
+    for (let i = 0; i < 8; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    setNewUser(prev => ({ ...prev, password }))
+    toast.success("Contraseña generada automáticamente")
+  }
+
   return (
     <div className="p-6 space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className={`grid w-full ${isAdminOrProgrammer ? 'grid-cols-4' : 'grid-cols-2'}`}>
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
             General
           </TabsTrigger>
-          <TabsTrigger value="usuarios" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Usuarios
-          </TabsTrigger>
+          {isAdminOrProgrammer && (
+            <TabsTrigger value="usuarios" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Usuarios
+            </TabsTrigger>
+          )}
           <TabsTrigger value="seguridad" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
             Seguridad
@@ -76,14 +167,12 @@ export default function ConfigurationModule() {
             <Bell className="w-4 h-4" />
             Alertas
           </TabsTrigger>
-          <TabsTrigger value="datos" className="flex items-center gap-2">
-            <Database className="w-4 h-4" />
-            Datos
-          </TabsTrigger>
-          <TabsTrigger value="integraciones" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Integraciones
-          </TabsTrigger>
+          {isAdminOrProgrammer && (
+            <TabsTrigger value="datos" className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              Datos
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Configuración General */}
@@ -165,6 +254,19 @@ export default function ConfigurationModule() {
                     </SelectContent>
                   </Select>
                 </div>
+                {isAdminOrProgrammer && (
+                  <div className="space-y-2">
+                    <Label>Documentación API</Label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => window.open('http://localhost:8000/docs', '_blank')}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Abrir Documentación
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -240,16 +342,153 @@ export default function ConfigurationModule() {
         </TabsContent>
 
         {/* Gestión de Usuarios */}
+        {isAdminOrProgrammer && (
         <TabsContent value="usuarios" className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-lg font-semibold">Gestión de Usuarios</h3>
               <p className="text-muted-foreground">Administra los usuarios del sistema y sus permisos</p>
             </div>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Usuario
-            </Button>
+            <Dialog open={showCreateUserModal} onOpenChange={setShowCreateUserModal}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nuevo Usuario
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+                  <DialogDescription>
+                    Completa la información para crear un nuevo usuario en el sistema
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-full-name">Nombre Completo *</Label>
+                      <Input
+                        id="new-full-name"
+                        placeholder="Ej: Juan Pérez"
+                        value={newUser.full_name}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, full_name: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-username">Usuario *</Label>
+                      <Input
+                        id="new-username"
+                        placeholder="Ej: jperez"
+                        value={newUser.username}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value.toLowerCase() }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="new-email">Correo Electrónico *</Label>
+                    <Input
+                      id="new-email"
+                      type="email"
+                      placeholder="juan.perez@empresa.com"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="new-role">Rol *</Label>
+                    <Select value={newUser.role} onValueChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="programador">Programador</SelectItem>
+                        <SelectItem value="contador">Contador</SelectItem>
+                        <SelectItem value="bodega">Bodega</SelectItem>
+                        <SelectItem value="ventas">Ventas</SelectItem>
+                        <SelectItem value="usuario">Usuario Básico</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Contraseña *</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="new-password"
+                        type="password"
+                        placeholder="Mínimo 6 caracteres"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={generateRandomPassword}
+                        className="px-3"
+                      >
+                        <Shield className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Haz clic en el escudo para generar una contraseña automática
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="new-notes">Notas (Opcional)</Label>
+                    <Textarea
+                      id="new-notes"
+                      placeholder="Información adicional sobre el usuario..."
+                      value={newUser.notes}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, notes: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateUserModal(false)
+                        setNewUser({
+                          full_name: "",
+                          email: "",
+                          username: "",
+                          password: "",
+                          role: "",
+                          notes: ""
+                        })
+                      }}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleCreateUser}
+                      disabled={isCreatingUser}
+                      className="flex-1"
+                    >
+                      {isCreatingUser ? (
+                        <>
+                          <Settings className="w-4 h-4 mr-2 animate-spin" />
+                          Creando...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Crear Usuario
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -299,42 +538,127 @@ export default function ConfigurationModule() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Usuarios del Sistema</CardTitle>
-                <CardDescription>Lista de usuarios registrados</CardDescription>
+                <CardTitle>Usuarios Activos en Línea</CardTitle>
+                <CardDescription>Usuarios conectados actualmente al sistema</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {[
-                  { name: "Kevin Fernandez", role: "Administrador", status: "Activo", lastLogin: "Hace 2 horas" },
-                  { name: "María García", role: "Contador", status: "Activo", lastLogin: "Hace 1 día" },
-                  { name: "Juan Pérez", role: "Bodega", status: "Activo", lastLogin: "Hace 3 horas" },
-                  { name: "Carlos López", role: "Ventas", status: "Inactivo", lastLogin: "Hace 1 semana" },
+                  {
+                    name: "Kevin Fernandez",
+                    role: "admin",
+                    status: "En línea",
+                    lastActivity: "Hace 2 minutos",
+                    location: "Dashboard",
+                    ipAddress: "192.168.1.100",
+                    device: "Chrome - Windows 11"
+                  },
+                  {
+                    name: "Taylor Swift",
+                    role: "contador",
+                    status: "En línea",
+                    lastActivity: "Hace 30 segundos",
+                    location: "Módulo Inventario",
+                    ipAddress: "192.168.1.105",
+                    device: "Firefox - Windows 10"
+                  },
+                  {
+                    name: "Juan Pérez",
+                    role: "bodega",
+                    status: "Inactivo",
+                    lastActivity: "Hace 15 minutos",
+                    location: "Trazabilidad",
+                    ipAddress: "192.168.1.102",
+                    device: "Chrome - Android"
+                  },
                 ].map((user, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium">
-                        {user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
+                  <div key={index} className="p-4 border rounded-lg bg-gradient-to-r from-slate-50 to-slate-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-lg">
+                            {user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </div>
+                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+                            user.status === "En línea" ? "bg-green-500" : "bg-gray-400"
+                          }`}></div>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-lg">{user.name}</p>
+                          <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-muted-foreground">{user.role}</p>
+                      <div className="text-right">
+                        <Badge variant={user.status === "En línea" ? "default" : "secondary"} className="mb-1">
+                          {user.status}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground">{user.lastActivity}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={user.status === "Activo" ? "default" : "secondary"}>{user.status}</Badge>
-                      <Button variant="ghost" size="sm">
-                        <Edit className="w-4 h-4" />
-                      </Button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-600" />
+                        <span className="text-muted-foreground">Ubicación:</span>
+                        <span className="font-medium">{user.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Settings className="w-4 h-4 text-green-600" />
+                        <span className="text-muted-foreground">IP:</span>
+                        <span className="font-mono text-xs">{user.ipAddress}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-purple-600" />
+                        <span className="text-muted-foreground">Dispositivo:</span>
+                        <span className="font-medium text-xs">{user.device}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Usuarios del Sistema</CardTitle>
+                  <CardDescription>Lista de usuarios registrados</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { name: "Kevin Fernandez", role: "Administrador", status: "Activo", lastLogin: "Hace 2 horas" },
+                    { name: "Taylor Swift", role: "Contador", status: "Activo", lastLogin: "Hace 1 día" },
+                    { name: "Juan Pérez", role: "Bodega", status: "Activo", lastLogin: "Hace 3 horas" },
+                    { name: "Carlos López", role: "Ventas", status: "Inactivo", lastLogin: "Hace 1 semana" },
+                  ].map((user, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium">
+                          {user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </div>
+                        <div>
+                          <p className="font-medium">{user.name}</p>
+                          <p className="text-sm text-muted-foreground">{user.role}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={user.status === "Activo" ? "default" : "secondary"}>{user.status}</Badge>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
 
             <Card>
               <CardHeader>
@@ -390,7 +714,141 @@ export default function ConfigurationModule() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Monitoreo de Actividad en Tiempo Real */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-green-600" />
+                Monitoreo de Actividad en Tiempo Real
+              </CardTitle>
+              <CardDescription>Seguimiento de actividades y módulos utilizados por los usuarios</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Users className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">Usuarios en Línea</p>
+                      <p className="text-2xl font-bold text-blue-600">3</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Eye className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-green-800">Sesiones Activas</p>
+                      <p className="text-2xl font-bold text-green-600">3</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-purple-800">Módulos en Uso</p>
+                      <p className="text-2xl font-bold text-purple-600">2</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-orange-800">Acciones/Hora</p>
+                      <p className="text-2xl font-bold text-orange-600">47</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-medium text-lg">Actividad por Módulo (Últimos 30 minutos)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    {
+                      module: "Inventario",
+                      users: ["Taylor Swift", "Juan Pérez"],
+                      actions: 23,
+                      lastActivity: "Hace 1 minuto",
+                      status: "Muy Activo",
+                      color: "text-green-600 bg-green-50 border-green-200"
+                    },
+                    {
+                      module: "Trazabilidad",
+                      users: ["Juan Pérez"],
+                      actions: 15,
+                      lastActivity: "Hace 5 minutos",
+                      status: "Activo",
+                      color: "text-blue-600 bg-blue-50 border-blue-200"
+                    },
+                    {
+                      module: "Dashboard",
+                      users: ["Kevin Fernandez"],
+                      actions: 8,
+                      lastActivity: "Hace 2 minutos",
+                      status: "Moderado",
+                      color: "text-purple-600 bg-purple-50 border-purple-200"
+                    },
+                    {
+                      module: "Configuración",
+                      users: ["Kevin Fernandez"],
+                      actions: 1,
+                      lastActivity: "Hace 10 minutos",
+                      status: "Bajo",
+                      color: "text-gray-600 bg-gray-50 border-gray-200"
+                    }
+                  ].map((moduleActivity, index) => (
+                    <div key={index} className={`p-4 rounded-lg border ${moduleActivity.color}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="font-semibold">{moduleActivity.module}</h5>
+                        <Badge variant="outline" className="text-xs">
+                          {moduleActivity.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Usuarios activos:</span>
+                          <span className="font-medium">{moduleActivity.users.length}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Acciones:</span>
+                          <span className="font-medium">{moduleActivity.actions}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Última actividad:</span>
+                          <span className="font-medium">{moduleActivity.lastActivity}</span>
+                        </div>
+                        <div className="pt-2">
+                          <p className="text-xs text-muted-foreground">Usuarios:</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {moduleActivity.users.map((user, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {user}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          </div>
         </TabsContent>
+        )}
 
         {/* Seguridad */}
         <TabsContent value="seguridad" className="space-y-6">
@@ -594,6 +1052,7 @@ export default function ConfigurationModule() {
         </TabsContent>
 
         {/* Gestión de Datos */}
+        {isAdminOrProgrammer && (
         <TabsContent value="datos" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
@@ -709,214 +1168,7 @@ export default function ConfigurationModule() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Integraciones */}
-        <TabsContent value="integraciones" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  Sistemas Contables
-                </CardTitle>
-                <CardDescription>Integración con software contable</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">QuickBooks</p>
-                      <p className="text-sm text-muted-foreground">Sincronización automática</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Desconectado</Badge>
-                    <Button size="sm">Conectar</Button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">SAP Business One</p>
-                      <p className="text-sm text-muted-foreground">ERP empresarial</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default">Conectado</Badge>
-                    <Button size="sm" variant="outline">
-                      Configurar
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-green-600" />
-                  E-commerce
-                </CardTitle>
-                <CardDescription>Integración con plataformas de venta</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <Upload className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Shopify</p>
-                      <p className="text-sm text-muted-foreground">Tienda online</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default">Conectado</Badge>
-                    <Button size="sm" variant="outline">
-                      Configurar
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Upload className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">WooCommerce</p>
-                      <p className="text-sm text-muted-foreground">WordPress e-commerce</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Desconectado</Badge>
-                    <Button size="sm">Conectar</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="w-5 h-5 text-red-600" />
-                  Facturación Electrónica
-                </CardTitle>
-                <CardDescription>Integración con SRI Ecuador</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-red-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">SRI - Facturación Electrónica</p>
-                      <p className="text-sm text-muted-foreground">Emisión automática de facturas</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Pendiente</Badge>
-                    <Button size="sm">Configurar</Button>
-                  </div>
-                </div>
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Configuración Requerida</AlertTitle>
-                  <AlertDescription>
-                    Para habilitar la facturación electrónica, necesitas configurar tu certificado digital y ambiente de
-                    pruebas del SRI.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-yellow-600" />
-                  APIs Externas
-                </CardTitle>
-                <CardDescription>Conexiones con servicios externos</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                      <Bell className="w-5 h-5 text-yellow-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">WhatsApp Business API</p>
-                      <p className="text-sm text-muted-foreground">Notificaciones por WhatsApp</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Desconectado</Badge>
-                    <Button size="sm">Conectar</Button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Database className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">API de Proveedores</p>
-                      <p className="text-sm text-muted-foreground">Actualización automática de precios</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Desconectado</Badge>
-                    <Button size="sm">Conectar</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuración de API</CardTitle>
-              <CardDescription>Configuración general para integraciones</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>URL Base de API</Label>
-                  <Input defaultValue="https://api.importadoraelmayorista.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Versión de API</Label>
-                  <Select defaultValue="v1">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="v1">v1.0</SelectItem>
-                      <SelectItem value="v2">v2.0 (Beta)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Token de Autenticación</Label>
-                <div className="flex gap-2">
-                  <Input type="password" defaultValue="sk_live_..." className="flex-1" />
-                  <Button variant="outline">Regenerar</Button>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={() => handleSaveConfiguration("API")}>Guardar Configuración</Button>
-                <Button variant="outline" onClick={handleTestConnection}>Probar Conexión</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        )}
       </Tabs>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Search, Plus, Eye, Edit, Download, DollarSign, TrendingUp, BarChart3, RotateCcw, Save, X, Check, RowsIcon, Trash2, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,11 +13,20 @@ import { Progress } from "@/components/ui/progress"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import BulkFinancialImportModal from "@/components/bulk-financial-import-modal"
+import CostModal from "@/components/modals/cost-modal"
+import ExpenseModal from "@/components/modals/expense-modal"
+import CapitalModal from "@/components/modals/capital-modal"
 
 export default function ManagementModule() {
   const [showCostImportModal, setShowCostImportModal] = useState(false)
   const [showExpenseImportModal, setShowExpenseImportModal] = useState(false)
   const [showCapitalImportModal, setShowCapitalImportModal] = useState(false)
+
+  // Modals state
+  const [showCostModal, setShowCostModal] = useState(false)
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
+  const [showCapitalModal, setShowCapitalModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
   // Datos financieros de ejemplo
   const initialFinancialData = {
     costos: [
@@ -96,7 +105,100 @@ export default function ManagementModule() {
   const [editValue, setEditValue] = useState("")
   const [selectedRows, setSelectedRows] = useState<{[key: string]: number[]}>({costos: [], gastos: [], capital: []})
   const [hasChanges, setHasChanges] = useState(false)
-  const [managementData, setManagementData] = useState(initialFinancialData)
+  const [managementData, setManagementData] = useState({costos: [], gastos: [], capital: []})
+  const [loading, setLoading] = useState(true)
+
+  const fetchCosts = async () => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) return
+
+      const response = await fetch('http://localhost:8000/api/v1/accounting/costs?page=1&size=50', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        return result.items || []
+      }
+    } catch (error) {
+      console.error('Error fetching costs:', error)
+    }
+    return []
+  }
+
+  const fetchExpenses = async () => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) return
+
+      const response = await fetch('http://localhost:8000/api/v1/accounting/expenses?page=1&size=50', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        return result.items || []
+      }
+    } catch (error) {
+      console.error('Error fetching expenses:', error)
+    }
+    return []
+  }
+
+  const fetchCapital = async () => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) return
+
+      const response = await fetch('http://localhost:8000/api/v1/accounting/capital?page=1&size=50', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        return result.items || []
+      }
+    } catch (error) {
+      console.error('Error fetching capital:', error)
+    }
+    return []
+  }
+
+  const fetchManagementData = async () => {
+    setLoading(true)
+    try {
+      const [costos, gastos, capital] = await Promise.all([
+        fetchCosts(),
+        fetchExpenses(),
+        fetchCapital()
+      ])
+
+      setManagementData({
+        costos,
+        gastos,
+        capital
+      })
+    } catch (error) {
+      console.error('Error fetching management data:', error)
+      toast.error('Error al cargar datos de gestión')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchManagementData()
+  }, [])
 
   const handleCellClick = useCallback((rowId: number, field: string, currentValue: any, tab: string) => {
     setEditingCell({ rowId, field, tab })
@@ -138,55 +240,124 @@ export default function ManagementModule() {
     setEditValue("")
   }, [])
 
-  const handleAddRow = useCallback((tab: string) => {
-    const tabData = managementData[tab]
-    const newId = Math.max(...tabData.map(item => item.id)) + 1
-    let newItem
-    
-    if (tab === 'costos') {
-      newItem = {
-        id: newId,
-        fecha: new Date().toISOString().slice(0, 10),
-        categoria: "Nueva Categoría",
-        subcategoria: "Nueva Subcategoría",
-        descripcion: "Nueva descripción",
-        monto: 0,
-        proveedor: "Nuevo Proveedor",
-        documento: `DOC-${String(newId).padStart(3, '0')}`,
-        estado: "Pendiente",
+  // Modal handlers
+  const handleOpenCostModal = () => {
+    setEditingItem(null)
+    setShowCostModal(true)
+  }
+
+  const handleOpenExpenseModal = () => {
+    setEditingItem(null)
+    setShowExpenseModal(true)
+  }
+
+  const handleOpenCapitalModal = () => {
+    setEditingItem(null)
+    setShowCapitalModal(true)
+  }
+
+  const handleSaveCost = async (costData: any) => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast.error('No se encontró token de autenticación')
+        return
       }
-    } else if (tab === 'gastos') {
-      newItem = {
-        id: newId,
-        fecha: new Date().toISOString().slice(0, 10),
-        categoria: "Nueva Categoría",
-        subcategoria: "Nueva Subcategoría",
-        descripcion: "Nueva descripción",
-        monto: 0,
-        proveedor: "Nuevo Proveedor",
-        documento: `DOC-${String(newId).padStart(3, '0')}`,
-        estado: "Pendiente",
+
+      const response = await fetch('http://localhost:8000/api/v1/accounting/costs', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(costData)
+      })
+
+      if (response.ok) {
+        toast.success('Costo creado exitosamente')
+        fetchManagementData()
+        setShowCostModal(false)
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.detail || 'Error al crear costo')
       }
-    } else {
-      newItem = {
-        id: newId,
-        fecha: new Date().toISOString().slice(0, 10),
-        tipo: "Nuevo Tipo",
-        descripcion: "Nueva descripción",
-        monto: 0,
-        origen: "Nuevo Origen",
-        documento: `DOC-${String(newId).padStart(3, '0')}`,
-        estado: "Pendiente",
-      }
+    } catch (error) {
+      console.error('Error creating cost:', error)
+      toast.error('Error de conexión con el servidor')
     }
-    
-    setManagementData(prev => ({
-      ...prev,
-      [tab]: [...prev[tab], newItem]
-    }))
-    setHasChanges(true)
-    toast.success("Nueva fila agregada")
-  }, [managementData])
+  }
+
+  const handleSaveExpense = async (expenseData: any) => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast.error('No se encontró token de autenticación')
+        return
+      }
+
+      const response = await fetch('http://localhost:8000/api/v1/accounting/expenses', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(expenseData)
+      })
+
+      if (response.ok) {
+        toast.success('Gasto creado exitosamente')
+        fetchManagementData()
+        setShowExpenseModal(false)
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.detail || 'Error al crear gasto')
+      }
+    } catch (error) {
+      console.error('Error creating expense:', error)
+      toast.error('Error de conexión con el servidor')
+    }
+  }
+
+  const handleSaveCapital = async (capitalData: any) => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast.error('No se encontró token de autenticación')
+        return
+      }
+
+      const response = await fetch('http://localhost:8000/api/v1/accounting/capital', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(capitalData)
+      })
+
+      if (response.ok) {
+        toast.success('Movimiento de capital creado exitosamente')
+        fetchManagementData()
+        setShowCapitalModal(false)
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.detail || 'Error al crear movimiento de capital')
+      }
+    } catch (error) {
+      console.error('Error creating capital movement:', error)
+      toast.error('Error de conexión con el servidor')
+    }
+  }
+
+  const handleAddRow = useCallback((tab: string) => {
+    if (tab === 'costos') {
+      handleOpenCostModal()
+    } else if (tab === 'gastos') {
+      handleOpenExpenseModal()
+    } else if (tab === 'capital') {
+      handleOpenCapitalModal()
+    }
+  }, [])
 
   const handleDeleteRows = useCallback((tab: string) => {
     const selectedInTab = selectedRows[tab]
@@ -324,6 +495,13 @@ export default function ManagementModule() {
 
   return (
     <div className="p-6 space-y-6">
+      {loading && (
+        <div className="text-center py-8">
+          <p>Cargando datos de gestión...</p>
+        </div>
+      )}
+
+      {!loading && (
       <Tabs defaultValue="costos" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="costos">Costos</TabsTrigger>
@@ -860,11 +1038,33 @@ export default function ManagementModule() {
         onClose={() => setShowExpenseImportModal(false)} 
       />
       
-      <BulkFinancialImportModal 
+      <BulkFinancialImportModal
         type="capital"
-        isOpen={showCapitalImportModal} 
-        onClose={() => setShowCapitalImportModal(false)} 
+        isOpen={showCapitalImportModal}
+        onClose={() => setShowCapitalImportModal(false)}
       />
+
+      <CostModal
+        isOpen={showCostModal}
+        onClose={() => setShowCostModal(false)}
+        onSave={handleSaveCost}
+        editingCost={editingItem}
+      />
+
+      <ExpenseModal
+        isOpen={showExpenseModal}
+        onClose={() => setShowExpenseModal(false)}
+        onSave={handleSaveExpense}
+        editingExpense={editingItem}
+      />
+
+      <CapitalModal
+        isOpen={showCapitalModal}
+        onClose={() => setShowCapitalModal(false)}
+        onSave={handleSaveCapital}
+        editingCapital={editingItem}
+      />
+      )}
     </div>
   )
 }

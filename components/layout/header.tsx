@@ -17,7 +17,12 @@ import { useApp } from "@/contexts/app-context"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import ProfileModal from "@/components/profile/profile-modal"
 
-export default function Header() {
+interface HeaderProps {
+  onOpenTutorial?: () => void
+  showTutorialButton?: boolean
+}
+
+export default function Header({ onOpenTutorial, showTutorialButton = false }: HeaderProps) {
   const { user, logout } = useAuth()
   const { activeModule, setActiveModule } = useApp()
   const [showProfileModal, setShowProfileModal] = useState(false)
@@ -66,6 +71,17 @@ export default function Header() {
           <p className="text-slate-600">{moduleInfo.description}</p>
         </div>
         <div className="flex items-center gap-4">
+          {showTutorialButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenTutorial}
+              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Tutorial Contador
+            </Button>
+          )}
           <NotificationBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

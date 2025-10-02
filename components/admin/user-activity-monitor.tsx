@@ -285,7 +285,7 @@ export function UserActivityMonitor({ currentUserRole, refreshInterval = 30000, 
                 <SelectValue placeholder="Tipo de acción" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas las acciones</SelectItem>
+                <SelectItem value="all">Todas las acciones</SelectItem>
                 <SelectItem value="login">Inicios de sesión</SelectItem>
                 <SelectItem value="logout">Cierres de sesión</SelectItem>
                 <SelectItem value="create">Creaciones</SelectItem>
@@ -301,7 +301,7 @@ export function UserActivityMonitor({ currentUserRole, refreshInterval = 30000, 
                 <SelectValue placeholder="Tipo de recurso" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los recursos</SelectItem>
+                <SelectItem value="all">Todos los recursos</SelectItem>
                 <SelectItem value="user">Usuarios</SelectItem>
                 <SelectItem value="product">Productos</SelectItem>
                 <SelectItem value="customer">Clientes</SelectItem>

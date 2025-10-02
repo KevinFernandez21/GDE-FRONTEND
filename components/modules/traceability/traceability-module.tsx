@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Plus, Eye, Edit, Download, Upload, Check, X, Save, Trash2, RowsIcon } from "lucide-react"
+import { Search, Plus, Eye, Edit, Download, Upload, Check, X, Save, Trash2, RowsIcon, QrCode, Scan } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,82 +11,95 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import BulkImportModal from "@/components/bulk-import-modal"
 import BulkGuideImportModal from "@/components/bulk-guide-import-modal"
-import { useState, useCallback } from "react"
+import ScanningInterface from "@/components/scanning-interface"
+import GuideModal from "@/components/modals/guide-modal"
+import KardexModal from "@/components/modals/kardex-modal"
+import { useState, useCallback, useEffect } from "react"
 import { toast } from "sonner"
 
 export default function TraceabilityModule() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [showGuideImportModal, setShowGuideImportModal] = useState(false)
+
+  // New modals state
+  const [showGuideModal, setShowGuideModal] = useState(false)
+  const [showKardexModal, setShowKardexModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
   const [editingCell, setEditingCell] = useState<{rowId: number, field: string, tab: string} | null>(null)
   const [editValue, setEditValue] = useState("")
   const [selectedRows, setSelectedRows] = useState<{[key: string]: number[]}>({guias: [], kardex: []})
   const [hasChanges, setHasChanges] = useState(false)
-  
-  const [guiasDespacho, setGuiasDespacho] = useState([
-    {
-      id: 1,
-      codigo: "GD-2024-001",
-      fecha: "2024-01-05",
-      cliente: "Empresa ABC",
-      estado: "Pendiente",
-      usuario: "Juan Pérez",
-      productos: 5,
-    },
-    {
-      id: 2,
-      codigo: "GD-2024-002",
-      fecha: "2024-01-04",
-      cliente: "Comercial XYZ",
-      estado: "Despachado",
-      usuario: "María García",
-      productos: 3,
-    },
-    {
-      id: 3,
-      codigo: "GD-2024-003",
-      fecha: "2024-01-04",
-      cliente: "Distribuidora 123",
-      estado: "En Tránsito",
-      usuario: "Carlos López",
-      productos: 8,
-    },
-  ])
+  const [loading, setLoading] = useState(true)
 
-  const [kardexData, setKardexData] = useState([
-    {
-      id: 1,
-      fecha: "2024-01-05",
-      tipoMovimiento: "Entrada",
-      documento: "FC-001",
-      cantidadEntrada: 100,
-      cantidadSalida: 0,
-      saldo: 345,
-      usuario: "Juan Pérez",
-      observaciones: "Compra a proveedor principal",
-    },
-    {
-      id: 2,
-      fecha: "2024-01-04",
-      tipoMovimiento: "Salida",
-      documento: "GD-002",
-      cantidadEntrada: 0,
-      cantidadSalida: 50,
-      saldo: 245,
-      usuario: "María García",
-      observaciones: "Venta a cliente corporativo",
-    },
-    {
-      id: 3,
-      fecha: "2024-01-03",
-      tipoMovimiento: "Ajuste",
-      documento: "AJ-003",
-      cantidadEntrada: 25,
-      cantidadSalida: 0,
-      saldo: 295,
-      usuario: "Carlos López",
-      observaciones: "Ajuste por inventario físico",
-    },
-  ])
+  const fetchGuiasDespacho = async () => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast.error('No se encontró token de autenticación')
+        return
+      }
+
+      const response = await fetch('http://localhost:8000/api/v1/delivery-guides/?page=1&size=50', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setGuiasDespacho(result.items || [])
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.detail || 'Error al cargar guías de despacho')
+      }
+    } catch (error) {
+      console.error('Error fetching delivery guides:', error)
+      toast.error('Error de conexión con el servidor')
+    }
+  }
+
+  const fetchKardexData = async () => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast.error('No se encontró token de autenticación')
+        return
+      }
+
+      const response = await fetch('http://localhost:8000/api/v1/kardex/?page=1&size=50', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setKardexData(result.items || [])
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.detail || 'Error al cargar datos de kardex')
+      }
+    } catch (error) {
+      console.error('Error fetching kardex data:', error)
+      toast.error('Error de conexión con el servidor')
+    }
+  }
+
+  const fetchTraceabilityData = async () => {
+    setLoading(true)
+    await Promise.all([fetchGuiasDespacho(), fetchKardexData()])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchTraceabilityData()
+  }, [])
+  
+  const [guiasDespacho, setGuiasDespacho] = useState([])
+
+  const [kardexData, setKardexData] = useState([])
 
   const handleCellClick = useCallback((rowId: number, field: string, currentValue: any, tab: string) => {
     setEditingCell({ rowId, field, tab })
@@ -100,7 +113,7 @@ export default function TraceabilityModule() {
       setGuiasDespacho(prev => prev.map(item => {
         if (item.id === editingCell.rowId) {
           const updatedItem = { ...item }
-          const fieldValue = field === 'productos' ? parseFloat(editValue) || 0 : editValue
+          const fieldValue = editingCell.field === 'productos' ? parseFloat(editValue) || 0 : editValue
           updatedItem[editingCell.field] = fieldValue
           return updatedItem
         }
@@ -144,11 +157,107 @@ export default function TraceabilityModule() {
     const data = tab === 'guias' ? guiasDespacho : kardexData
     setSelectedRows(prev => ({
       ...prev,
-      [tab]: prev[tab].length === data.length 
+      [tab]: prev[tab].length === data.length
         ? []
         : data.map(item => item.id)
     }))
   }, [guiasDespacho, kardexData])
+
+  // Modal handlers
+  const handleOpenGuideModal = () => {
+    setEditingItem(null)
+    setShowGuideModal(true)
+  }
+
+  const handleOpenKardexModal = () => {
+    setEditingItem(null)
+    setShowKardexModal(true)
+  }
+
+  const handleSaveGuide = async (guideData: any) => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast.error('No se encontró token de autenticación')
+        return
+      }
+
+      const response = await fetch('http://localhost:8000/api/v1/delivery-guides/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(guideData)
+      })
+
+      if (response.ok) {
+        toast.success('Guía de despacho creada exitosamente')
+        fetchGuiasDespacho()
+        setShowGuideModal(false)
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.detail || 'Error al crear guía de despacho')
+      }
+    } catch (error) {
+      console.error('Error creating guide:', error)
+      toast.error('Error de conexión con el servidor')
+    }
+  }
+
+  const handleSaveKardex = async (kardexMovementData: any) => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast.error('No se encontró token de autenticación')
+        return
+      }
+
+      const response = await fetch('http://localhost:8000/api/v1/kardex/movement', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(kardexMovementData)
+      })
+
+      if (response.ok) {
+        toast.success('Movimiento de kardex creado exitosamente')
+        fetchKardexData()
+        setShowKardexModal(false)
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.detail || 'Error al crear movimiento de kardex')
+      }
+    } catch (error) {
+      console.error('Error creating kardex movement:', error)
+      toast.error('Error de conexión con el servidor')
+    }
+  }
+
+  const handleAddRow = useCallback((tab: string) => {
+    if (tab === 'guias') {
+      handleOpenGuideModal()
+    } else if (tab === 'kardex') {
+      handleOpenKardexModal()
+    }
+  }, [])
+
+  const handleDeleteRows = useCallback((tab: string) => {
+    const selectedInTab = selectedRows[tab]
+    if (selectedInTab.length === 0) return
+
+    if (tab === 'guias') {
+      setGuiasDespacho(prev => prev.filter(item => !selectedInTab.includes(item.id)))
+    } else {
+      setKardexData(prev => prev.filter(item => !selectedInTab.includes(item.id)))
+    }
+
+    setSelectedRows(prev => ({ ...prev, [tab]: [] }))
+    setHasChanges(true)
+    toast.success(`${selectedInTab.length} filas eliminadas`)
+  }, [selectedRows])
 
   const renderEditableCell = useCallback((item: any, field: string, tab: string) => {
     const isEditing = editingCell?.rowId === item.id && editingCell?.field === field && editingCell?.tab === tab
@@ -243,10 +352,18 @@ export default function TraceabilityModule() {
 
   return (
     <div className="p-6 space-y-6">
+      {loading && (
+        <div className="text-center py-8">
+          <p>Cargando datos de trazabilidad...</p>
+        </div>
+      )}
+
+      {!loading && (
       <Tabs defaultValue="guias" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="guias">Guías de Despacho</TabsTrigger>
           <TabsTrigger value="kardex">Kardex</TabsTrigger>
+          <TabsTrigger value="scanning">Escaneo de Guías</TabsTrigger>
         </TabsList>
 
         <TabsContent value="guias" className="space-y-4">
@@ -273,7 +390,7 @@ export default function TraceabilityModule() {
                 <Upload className="w-4 h-4 mr-2" />
                 Importar Excel
               </Button>
-              <Button>
+              <Button onClick={() => handleAddRow('guias')}>
                 <Plus className="w-4 h-4 mr-2" />
                 Nueva Guía
               </Button>
@@ -284,7 +401,7 @@ export default function TraceabilityModule() {
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.guias.length === guiasDespacho.length && guiasDespacho.length > 0}
                   onCheckedChange={() => handleSelectAll('guias')}
                 />
@@ -292,8 +409,18 @@ export default function TraceabilityModule() {
                   {selectedRows.guias.length > 0 ? `${selectedRows.guias.length} seleccionadas` : "Seleccionar todo"}
                 </span>
               </div>
+              {selectedRows.guias.length > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteRows('guias')}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Seleccionadas
+                </Button>
+              )}
             </div>
             <div className="flex gap-2">
+              <Button onClick={() => handleAddRow('guias')} size="sm">
+                <RowsIcon className="w-4 h-4 mr-2" />
+                Agregar Fila
+              </Button>
               {hasChanges && (
                 <Button onClick={() => {setHasChanges(false); toast.success("Cambios guardados");}} size="sm" variant="default">
                   <Save className="w-4 h-4 mr-2" />
@@ -390,6 +517,10 @@ export default function TraceabilityModule() {
                 <Download className="w-4 h-4 mr-2" />
                 Exportar Kardex
               </Button>
+              <Button onClick={() => handleAddRow('kardex')}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo Movimiento
+              </Button>
             </div>
           </div>
 
@@ -397,7 +528,7 @@ export default function TraceabilityModule() {
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.kardex.length === kardexData.length && kardexData.length > 0}
                   onCheckedChange={() => handleSelectAll('kardex')}
                 />
@@ -405,8 +536,18 @@ export default function TraceabilityModule() {
                   {selectedRows.kardex.length > 0 ? `${selectedRows.kardex.length} seleccionadas` : "Seleccionar todo"}
                 </span>
               </div>
+              {selectedRows.kardex.length > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteRows('kardex')}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Seleccionadas
+                </Button>
+              )}
             </div>
             <div className="flex gap-2">
+              <Button onClick={() => handleAddRow('kardex')} size="sm">
+                <RowsIcon className="w-4 h-4 mr-2" />
+                Agregar Fila
+              </Button>
               {hasChanges && (
                 <Button onClick={() => {setHasChanges(false); toast.success("Cambios guardados");}} size="sm" variant="default">
                   <Save className="w-4 h-4 mr-2" />
@@ -469,16 +610,35 @@ export default function TraceabilityModule() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="scanning" className="space-y-4">
+          <ScanningInterface />
+        </TabsContent>
       </Tabs>
       
       <BulkImportModal 
         isOpen={showImportModal} 
         onClose={() => setShowImportModal(false)} 
       />
-      <BulkGuideImportModal 
-        isOpen={showGuideImportModal} 
-        onClose={() => setShowGuideImportModal(false)} 
+      <BulkGuideImportModal
+        isOpen={showGuideImportModal}
+        onClose={() => setShowGuideImportModal(false)}
       />
+
+      <GuideModal
+        isOpen={showGuideModal}
+        onClose={() => setShowGuideModal(false)}
+        onSave={handleSaveGuide}
+        editingGuide={editingItem}
+      />
+
+      <KardexModal
+        isOpen={showKardexModal}
+        onClose={() => setShowKardexModal(false)}
+        onSave={handleSaveKardex}
+        editingKardex={editingItem}
+      />
+      )}
     </div>
   )
 }
